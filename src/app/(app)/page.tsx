@@ -1,10 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CalendarDays, MapPin, Plus, Users } from "lucide-react";
 import Link from "next/link";
-import { Profile, RsvpStatus } from "@/lib/types";
+import { RsvpStatus } from "@/lib/types";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
