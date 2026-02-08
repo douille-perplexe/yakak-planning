@@ -33,7 +33,6 @@ export async function GET(request: Request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
-      // Check if user is approved
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -56,6 +55,5 @@ export async function GET(request: Request) {
     }
   }
 
-  // Something went wrong — redirect to login
   return NextResponse.redirect(`${origin}/login`);
 }
