@@ -1,0 +1,135 @@
+"use server";
+
+import { createClient } from "@/lib/supabase/server";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+
+interface CreateEventInput {
+  title: string;
+  date: string;
+  location: string;
+  description?: string;
+  reminder_hours?: number;
+}
+
+export async function createEvent(input: CreateEventInput) {
+  const supabase = await createClient();
+
+  // Validate
+  if (!input.title?.trim() || input.title.length > 100) {
+    return { success: false, error: "Title is required (max 100 characters)" };
+  }
+  if (!input.date) {
+    return { success: false, error: "Date is required" };
+  }
+  if (!input.location?.trim() || input.location.length > 200) {
+    return {
+      success: false,
+      error: "Location is required (max 200 characters)",
+    };
+  }
+  if (input.description && input.description.length > 2000) {
+    return {
+      success: false,
+      error: "Description must be under 2000 characters",
+    };
+  }
+
+  // Get current user's profile id
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Not authenticated" };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("user_id", user.id)
+    .single();
+
+  if (!profile) return { success: false, error: "Profile not found" };
+
+  const { data: event, error } = await supabase
+    .from("events")
+    .insert({
+      title: input.title.trim(),
+      date: input.date,
+      location: input.location.trim(),
+      description: input.description?.trim() || null,
+      reminder_hours: input.reminder_hours ?? 24,
+      created_by: profile.id,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath("/");
+  revalidatePath("/calendar");
+  redirect(`/events/${event.id}`);
+}
+
+export async function updateEvent(
+  eventId: string,
+  input: Partial<CreateEventInput>
+) {
+  const supabase = await createClient();
+
+  const updates: Record<string, unknown> = {};
+  if (input.title !== undefined) {
+    if (!input.title?.trim() || input.title.length > 100) {
+      return {
+        success: false,
+        error: "Title is required (max 100 characters)",
+      };
+    }
+    updates.title = input.title.trim();
+  }
+  if (input.date !== undefined) updates.date = input.date;
+  if (input.location !== undefined) {
+    if (!input.location?.trim() || input.location.length > 200) {
+      return {
+        success: false,
+        error: "Location is required (max 200 characters)",
+      };
+    }
+    updates.location = input.location.trim();
+  }
+  if (input.description !== undefined)
+    updates.description = input.description?.trim() || null;
+  if (input.reminder_hours !== undefined)
+    updates.reminder_hours = input.reminder_hours;
+
+  const { error } = await supabase
+    .from("events")
+    .update(updates)
+    .eq("id", eventId);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath("/");
+  revalidatePath("/calendar");
+  revalidatePath(`/events/${eventId}`);
+  return { success: true };
+}
+
+export async function deleteEvent(eventId: string) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("events")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", eventId);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath("/");
+  revalidatePath("/calendar");
+  redirect("/");
+}
