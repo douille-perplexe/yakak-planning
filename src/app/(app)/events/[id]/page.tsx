@@ -9,7 +9,9 @@ import { Button } from "@/components/ui/button";
 import { RsvpButtons } from "@/components/rsvp-buttons";
 import { EventActions } from "@/components/event-actions";
 import { CommentThread } from "@/components/comment-thread";
-import { Profile, RsvpStatus, CommentWithUser } from "@/lib/types";
+import { PollCard } from "@/components/poll-card";
+import { CreatePollForm } from "@/components/create-poll-form";
+import { Profile, RsvpStatus, CommentWithUser, PollWithDetails } from "@/lib/types";
 
 export default async function EventDetailPage({
   params,
@@ -86,6 +88,30 @@ export default async function EventDetailPage({
     .eq("event_id", id)
     .order("created_at", { ascending: true });
 
+  // Fetch polls with options and votes
+  const { data: rawPolls } = await supabase
+    .from("polls")
+    .select(
+      "*, creator:profiles!polls_user_id_fkey(id, display_name)"
+    )
+    .eq("event_id", id)
+    .order("created_at", { ascending: true });
+
+  const { data: allOptions } = rawPolls?.length
+    ? await supabase
+        .from("poll_options")
+        .select("*")
+        .in("poll_id", rawPolls.map((p) => p.id))
+        .order("position", { ascending: true })
+    : { data: [] };
+
+  const { data: allVotes } = rawPolls?.length
+    ? await supabase
+        .from("poll_votes")
+        .select("*")
+        .in("poll_id", rawPolls.map((p) => p.id))
+    : { data: [] };
+
   const rsvpList = rsvps ?? [];
   const members = allMembers ?? [];
 
@@ -101,6 +127,26 @@ export default async function EventDetailPage({
 
   const isCreator = event.created_by === currentProfile?.id;
   const isAdmin = currentProfile?.role === "admin";
+
+  // Assemble polls with their options and votes
+  const polls: PollWithDetails[] = (rawPolls ?? []).map((poll) => {
+    const pollOptions = (allOptions ?? []).filter((o) => o.poll_id === poll.id);
+    const pollVotes = (allVotes ?? []).filter((v) => v.poll_id === poll.id);
+    const userVote = pollVotes.find(
+      (v) => v.user_id === currentProfile?.id
+    );
+
+    return {
+      ...poll,
+      creator: poll.creator as unknown as Pick<Profile, "id" | "display_name">,
+      options: pollOptions.map((o) => ({
+        ...o,
+        vote_count: pollVotes.filter((v) => v.option_id === o.id).length,
+      })),
+      user_vote: userVote?.option_id ?? null,
+      total_votes: pollVotes.length,
+    };
+  });
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString("en-US", {
@@ -312,6 +358,39 @@ export default async function EventDetailPage({
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Polls section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span className="flex items-center gap-2">
+              Polls
+              {polls.length > 0 && (
+                <Badge variant="secondary">{polls.length}</Badge>
+              )}
+            </span>
+            <CreatePollForm eventId={event.id} />
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {polls.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              No polls yet. Create one to help decide!
+            </p>
+          ) : (
+            <div className="space-y-4">
+              {polls.map((poll) => (
+                <PollCard
+                  key={poll.id}
+                  poll={poll}
+                  eventId={event.id}
+                  currentProfileId={currentProfile?.id ?? ""}
+                />
+              ))}
             </div>
           )}
         </CardContent>
