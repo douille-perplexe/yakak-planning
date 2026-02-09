@@ -4,7 +4,7 @@ import { useState, useRef } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Trash2, SmilePlus } from "lucide-react";
+import { Send, Trash2, SmilePlus, ImagePlus, X } from "lucide-react";
 import { createComment, deleteComment } from "@/app/actions/comments";
 import { toggleReaction } from "@/app/actions/reactions";
 import { CommentWithUser, Profile, ReactionGroup } from "@/lib/types";
@@ -47,12 +47,10 @@ function ReactionBar({
     setLoading(true);
     setPickerOpen(false);
 
-    // Optimistic update
     setLocalReactions((prev) => {
       const existing = prev.find((r) => r.emoji === emoji);
       if (existing) {
         if (existing.reacted_by_me) {
-          // Remove my reaction
           if (existing.count === 1) return prev.filter((r) => r.emoji !== emoji);
           return prev.map((r) =>
             r.emoji === emoji
@@ -60,7 +58,6 @@ function ReactionBar({
               : r
           );
         } else {
-          // Add my reaction to existing group
           return prev.map((r) =>
             r.emoji === emoji
               ? { ...r, count: r.count + 1, reacted_by_me: true }
@@ -68,7 +65,6 @@ function ReactionBar({
           );
         }
       } else {
-        // New emoji group
         return [...prev, { emoji, count: 1, reacted_by_me: true }];
       }
     });
@@ -131,17 +127,57 @@ export function CommentThread({
 }) {
   const [comments, setComments] = useState(initialComments);
   const [content, setContent] = useState("");
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      alert("Only JPEG, PNG, and WebP images are allowed.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Image must be under 5 MB.");
+      return;
+    }
+
+    setSelectedImage(file);
+    const reader = new FileReader();
+    reader.onload = (ev) => setImagePreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const clearImage = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
 
   const handleSubmit = async () => {
-    if (!content.trim() || loading) return;
+    if ((!content.trim() && !selectedImage) || loading) return;
 
     setLoading(true);
-    const result = await createComment(eventId, content);
+
+    let imageFormData: FormData | undefined;
+    if (selectedImage) {
+      imageFormData = new FormData();
+      imageFormData.set("image", selectedImage);
+    }
+
+    const result = await createComment(
+      eventId,
+      content,
+      imageFormData
+    );
 
     if (result.success) {
       setContent("");
+      clearImage();
     }
     setLoading(false);
   };
@@ -200,9 +236,22 @@ export function CommentThread({
                       </button>
                     )}
                   </div>
-                  <p className="text-sm text-foreground mt-0.5 whitespace-pre-wrap break-words">
-                    {comment.content}
-                  </p>
+                  {comment.content.trim() && (
+                    <p className="text-sm text-foreground mt-0.5 whitespace-pre-wrap break-words">
+                      {comment.content}
+                    </p>
+                  )}
+                  {comment.image_url && (
+                    <div className="mt-2">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={comment.image_url}
+                        alt="Shared image"
+                        className="rounded-lg max-w-full max-h-80 object-cover border border-border"
+                        loading="lazy"
+                      />
+                    </div>
+                  )}
                   <ReactionBar
                     reactions={comment.reactions ?? []}
                     commentId={comment.id}
@@ -212,6 +261,24 @@ export function CommentThread({
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Image preview */}
+      {imagePreview && (
+        <div className="relative inline-block">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={imagePreview}
+            alt="Preview"
+            className="rounded-lg max-h-32 border border-border"
+          />
+          <button
+            onClick={clearImage}
+            className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-0.5"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
         </div>
       )}
 
@@ -229,14 +296,32 @@ export function CommentThread({
             className="min-h-[40px] resize-none"
           />
         </div>
-        <Button
-          size="icon"
-          onClick={handleSubmit}
-          disabled={!content.trim() || loading}
-          className="flex-shrink-0 self-end"
-        >
-          <Send className="h-4 w-4" />
-        </Button>
+        <div className="flex flex-col gap-1 self-end">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={handleImageSelect}
+            className="hidden"
+          />
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => fileInputRef.current?.click()}
+            title="Attach image"
+            className="flex-shrink-0"
+          >
+            <ImagePlus className="h-4 w-4" />
+          </Button>
+          <Button
+            size="icon"
+            onClick={handleSubmit}
+            disabled={(!content.trim() && !selectedImage) || loading}
+            className="flex-shrink-0"
+          >
+            <Send className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
       {content.length > 1800 && (
         <p className="text-xs text-muted-foreground text-right">
