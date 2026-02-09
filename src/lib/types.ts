@@ -35,6 +35,19 @@ export interface Rsvp {
   updated_at: string;
 }
 
+export interface Comment {
+  id: string;
+  event_id: string;
+  user_id: string;
+  content: string;
+  image_url: string | null;
+  created_at: string;
+}
+
+export interface CommentWithUser extends Comment {
+  user: Pick<Profile, "id" | "display_name" | "avatar_url">;
+}
+
 export interface EventWithCreator extends Event {
   creator: Pick<Profile, "id" | "display_name" | "avatar_url">;
 }

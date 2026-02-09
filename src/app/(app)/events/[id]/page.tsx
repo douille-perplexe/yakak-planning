@@ -8,7 +8,8 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { RsvpButtons } from "@/components/rsvp-buttons";
 import { EventActions } from "@/components/event-actions";
-import { Profile, RsvpStatus } from "@/lib/types";
+import { CommentThread } from "@/components/comment-thread";
+import { Profile, RsvpStatus, CommentWithUser } from "@/lib/types";
 
 export default async function EventDetailPage({
   params,
@@ -75,6 +76,15 @@ export default async function EventDetailPage({
     .from("profiles")
     .select("id, display_name, avatar_url")
     .eq("status", "approved");
+
+  // Fetch comments with user profiles
+  const { data: comments } = await supabase
+    .from("comments")
+    .select(
+      "*, user:profiles!comments_user_id_fkey(id, display_name, avatar_url)"
+    )
+    .eq("event_id", id)
+    .order("created_at", { ascending: true });
 
   const rsvpList = rsvps ?? [];
   const members = allMembers ?? [];
@@ -304,6 +314,25 @@ export default async function EventDetailPage({
               </div>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Comments section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            Discussion
+            {(comments?.length ?? 0) > 0 && (
+              <Badge variant="secondary">{comments!.length}</Badge>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <CommentThread
+            eventId={event.id}
+            comments={(comments ?? []) as unknown as CommentWithUser[]}
+            currentProfileId={currentProfile?.id ?? ""}
+          />
         </CardContent>
       </Card>
     </div>
