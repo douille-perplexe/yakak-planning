@@ -4,9 +4,15 @@ import { useState, useRef } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Trash2 } from "lucide-react";
+import { Send, Trash2, SmilePlus } from "lucide-react";
 import { createComment, deleteComment } from "@/app/actions/comments";
-import { CommentWithUser, Profile } from "@/lib/types";
+import { toggleReaction } from "@/app/actions/reactions";
+import { CommentWithUser, Profile, ReactionGroup } from "@/lib/types";
+
+const EMOJI_PICKER = [
+  "\u{1F44D}", "\u{2764}\u{FE0F}", "\u{1F602}", "\u{1F389}",
+  "\u{1F44F}", "\u{1F525}", "\u{1F914}", "\u{1F622}",
+];
 
 function timeAgo(dateStr: string) {
   const now = new Date();
@@ -21,6 +27,97 @@ function timeAgo(dateStr: string) {
   const days = Math.floor(hours / 24);
   if (days < 7) return `${days}d ago`;
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+function ReactionBar({
+  reactions,
+  commentId,
+  eventId,
+}: {
+  reactions: ReactionGroup[];
+  commentId: string;
+  eventId: string;
+}) {
+  const [localReactions, setLocalReactions] = useState(reactions);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleToggle = async (emoji: string) => {
+    if (loading) return;
+    setLoading(true);
+    setPickerOpen(false);
+
+    // Optimistic update
+    setLocalReactions((prev) => {
+      const existing = prev.find((r) => r.emoji === emoji);
+      if (existing) {
+        if (existing.reacted_by_me) {
+          // Remove my reaction
+          if (existing.count === 1) return prev.filter((r) => r.emoji !== emoji);
+          return prev.map((r) =>
+            r.emoji === emoji
+              ? { ...r, count: r.count - 1, reacted_by_me: false }
+              : r
+          );
+        } else {
+          // Add my reaction to existing group
+          return prev.map((r) =>
+            r.emoji === emoji
+              ? { ...r, count: r.count + 1, reacted_by_me: true }
+              : r
+          );
+        }
+      } else {
+        // New emoji group
+        return [...prev, { emoji, count: 1, reacted_by_me: true }];
+      }
+    });
+
+    await toggleReaction(commentId, emoji, eventId);
+    setLoading(false);
+  };
+
+  return (
+    <div className="flex items-center gap-1 mt-1 flex-wrap">
+      {localReactions.map((r) => (
+        <button
+          key={r.emoji}
+          onClick={() => handleToggle(r.emoji)}
+          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs transition-colors ${
+            r.reacted_by_me
+              ? "bg-primary/15 border border-primary/30"
+              : "bg-muted border border-transparent hover:border-border"
+          }`}
+        >
+          <span>{r.emoji}</span>
+          <span className="text-muted-foreground">{r.count}</span>
+        </button>
+      ))}
+
+      <div className="relative">
+        <button
+          onClick={() => setPickerOpen(!pickerOpen)}
+          className="inline-flex items-center justify-center h-6 w-6 rounded-full hover:bg-muted transition-colors"
+          title="Add reaction"
+        >
+          <SmilePlus className="h-3.5 w-3.5 text-muted-foreground" />
+        </button>
+        {pickerOpen && (
+          <div className="absolute bottom-full left-0 mb-1 bg-card border border-border rounded-lg shadow-lg p-1.5 flex gap-1 z-10">
+            {EMOJI_PICKER.map((emoji) => (
+              <button
+                key={emoji}
+                onClick={() => handleToggle(emoji)}
+                className="h-8 w-8 flex items-center justify-center rounded hover:bg-muted text-lg transition-colors"
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export function CommentThread({
@@ -45,8 +142,6 @@ export function CommentThread({
 
     if (result.success) {
       setContent("");
-      // Optimistic: the revalidation from the server action will refresh the data.
-      // For instant feedback, we'll let the server re-render handle it.
     }
     setLoading(false);
   };
@@ -108,6 +203,11 @@ export function CommentThread({
                   <p className="text-sm text-foreground mt-0.5 whitespace-pre-wrap break-words">
                     {comment.content}
                   </p>
+                  <ReactionBar
+                    reactions={comment.reactions ?? []}
+                    commentId={comment.id}
+                    eventId={eventId}
+                  />
                 </div>
               </div>
             );

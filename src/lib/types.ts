@@ -44,8 +44,23 @@ export interface Comment {
   created_at: string;
 }
 
+export interface Reaction {
+  id: string;
+  comment_id: string;
+  user_id: string;
+  emoji: string;
+  created_at: string;
+}
+
+export interface ReactionGroup {
+  emoji: string;
+  count: number;
+  reacted_by_me: boolean;
+}
+
 export interface CommentWithUser extends Comment {
   user: Pick<Profile, "id" | "display_name" | "avatar_url">;
+  reactions: ReactionGroup[];
 }
 
 export interface Poll {

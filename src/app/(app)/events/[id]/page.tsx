@@ -88,6 +88,44 @@ export default async function EventDetailPage({
     .eq("event_id", id)
     .order("created_at", { ascending: true });
 
+  // Fetch reactions for comments
+  const commentIds = (comments ?? []).map((c) => c.id);
+  const { data: reactions } = commentIds.length
+    ? await supabase
+        .from("reactions")
+        .select("*")
+        .in("comment_id", commentIds)
+    : { data: [] };
+
+  // Assemble comments with reaction groups
+  const commentsWithReactions: CommentWithUser[] = (comments ?? []).map((c) => {
+    const commentReactions = (reactions ?? []).filter(
+      (r) => r.comment_id === c.id
+    );
+    // Group by emoji
+    const emojiMap = new Map<string, { count: number; reacted_by_me: boolean }>();
+    for (const r of commentReactions) {
+      const existing = emojiMap.get(r.emoji);
+      if (existing) {
+        existing.count++;
+        if (r.user_id === currentProfile?.id) existing.reacted_by_me = true;
+      } else {
+        emojiMap.set(r.emoji, {
+          count: 1,
+          reacted_by_me: r.user_id === currentProfile?.id,
+        });
+      }
+    }
+    return {
+      ...c,
+      user: c.user,
+      reactions: Array.from(emojiMap.entries()).map(([emoji, data]) => ({
+        emoji,
+        ...data,
+      })),
+    } as unknown as CommentWithUser;
+  });
+
   // Fetch polls with options and votes
   const { data: rawPolls } = await supabase
     .from("polls")
@@ -409,7 +447,7 @@ export default async function EventDetailPage({
         <CardContent>
           <CommentThread
             eventId={event.id}
-            comments={(comments ?? []) as unknown as CommentWithUser[]}
+            comments={commentsWithReactions}
             currentProfileId={currentProfile?.id ?? ""}
           />
         </CardContent>
