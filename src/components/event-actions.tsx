@@ -33,7 +33,9 @@ export function EventActions({
   eventCategoryIds?: string[];
 }) {
   const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>(
     eventCategoryIds ?? []
@@ -65,7 +67,7 @@ export function EventActions({
   };
 
   const handleDelete = async () => {
-    if (!confirm("Are you sure you want to cancel this event?")) return;
+    setDeleting(true);
     await deleteEvent(eventId);
   };
 
@@ -180,10 +182,38 @@ export function EventActions({
       )}
 
       {(isCreator || isAdmin) && (
-        <Button variant="destructive" size="sm" onClick={handleDelete}>
-          <Trash2 className="mr-2 h-4 w-4" />
-          Delete
-        </Button>
+        <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+          <DialogTrigger asChild>
+            <Button variant="destructive" size="sm">
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Cancel this event?</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground">
+              This will cancel <span className="font-medium text-foreground">{event.title}</span>. All RSVPed members will be notified. This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-2 mt-4">
+              <Button
+                variant="outline"
+                onClick={() => setDeleteOpen(false)}
+                disabled={deleting}
+              >
+                Keep event
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleDelete}
+                disabled={deleting}
+              >
+                {deleting ? "Cancelling..." : "Yes, cancel event"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );
