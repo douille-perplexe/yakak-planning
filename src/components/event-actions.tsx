@@ -14,26 +14,37 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Pencil, Trash2 } from "lucide-react";
 import { updateEvent, deleteEvent } from "@/app/actions/events";
-import { Event } from "@/lib/types";
+import { Event, ActivityCategory } from "@/lib/types";
+import { CategoryPicker } from "@/components/category-picker";
 
 export function EventActions({
   eventId,
   event,
   isCreator,
   isAdmin,
+  categories,
+  eventCategoryIds,
 }: {
   eventId: string;
   event: Event;
   isCreator: boolean;
   isAdmin: boolean;
+  categories?: ActivityCategory[];
+  eventCategoryIds?: string[];
 }) {
   const [editOpen, setEditOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>(
+    eventCategoryIds ?? []
+  );
 
   const handleEdit = async (formData: FormData) => {
     setLoading(true);
     setError(null);
+
+    const costStr = formData.get("estimated_cost") as string;
+    const estimatedCost = costStr ? parseFloat(costStr) : null;
 
     const result = await updateEvent(eventId, {
       title: formData.get("title") as string,
@@ -41,6 +52,8 @@ export function EventActions({
       location: formData.get("location") as string,
       description: (formData.get("description") as string) || undefined,
       reminder_hours: Number(formData.get("reminder_hours")) || 24,
+      estimated_cost: estimatedCost,
+      category_ids: selectedCategoryIds,
     });
 
     if (!result.success) {
@@ -116,6 +129,32 @@ export function EventActions({
                   name="description"
                   defaultValue={event.description ?? ""}
                   maxLength={2000}
+                />
+              </div>
+              {categories && categories.length > 0 && (
+                <div>
+                  <Label>Categories</Label>
+                  <div className="mt-1.5">
+                    <CategoryPicker
+                      categories={categories}
+                      selectedIds={selectedCategoryIds}
+                      onChange={setSelectedCategoryIds}
+                    />
+                  </div>
+                </div>
+              )}
+              <div>
+                <Label htmlFor="estimated_cost">
+                  Estimated cost per person (EUR)
+                </Label>
+                <Input
+                  id="estimated_cost"
+                  name="estimated_cost"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  defaultValue={event.estimated_cost ?? ""}
+                  placeholder="0.00"
                 />
               </div>
               <div>

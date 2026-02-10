@@ -3,9 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Profile, NotificationPreference } from "@/lib/types";
+import { Profile, NotificationPreference, ActivityCategory } from "@/lib/types";
 import { AdminPanel } from "@/components/admin-panel";
 import { NotificationPreferences } from "@/components/notification-preferences";
+import { CategoryManager } from "@/components/category-manager";
 
 export default async function SettingsPage() {
   const supabase = await createClient();
@@ -29,6 +30,7 @@ export default async function SettingsPage() {
 
   let pendingUsers: Profile[] = [];
   let approvedMembers: Profile[] = [];
+  let categories: ActivityCategory[] = [];
 
   if (isAdmin) {
     const { data: pending } = await supabase
@@ -43,8 +45,14 @@ export default async function SettingsPage() {
       .eq("status", "approved")
       .order("created_at", { ascending: true });
 
+    const { data: cats } = await supabase
+      .from("activity_categories")
+      .select("*")
+      .order("position", { ascending: true });
+
     pendingUsers = (pending ?? []) as Profile[];
     approvedMembers = (members ?? []) as Profile[];
+    categories = (cats ?? []) as ActivityCategory[];
   }
 
   return (
@@ -79,6 +87,9 @@ export default async function SettingsPage() {
       <NotificationPreferences
         preferences={(notifPrefs ?? []) as NotificationPreference[]}
       />
+
+      {/* Category management (admin) */}
+      {isAdmin && <CategoryManager categories={categories} />}
 
       {/* Admin section */}
       {isAdmin && (

@@ -19,11 +19,28 @@ export interface Event {
   date: string;
   location: string;
   description: string | null;
+  estimated_cost: number | null;
   reminder_hours: number;
   created_by: string;
   deleted_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface ActivityCategory {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+  position: number;
+  created_at: string;
+}
+
+export interface EventCategory {
+  id: string;
+  event_id: string;
+  category_id: string;
+  created_at: string;
 }
 
 export interface Rsvp {

@@ -15,6 +15,8 @@ interface CreateEventInput {
   location: string;
   description?: string;
   reminder_hours?: number;
+  estimated_cost?: number | null;
+  category_ids?: string[];
 }
 
 export async function createEvent(input: CreateEventInput) {
@@ -39,6 +41,13 @@ export async function createEvent(input: CreateEventInput) {
       error: "Description must be under 2000 characters",
     };
   }
+  if (
+    input.estimated_cost !== undefined &&
+    input.estimated_cost !== null &&
+    input.estimated_cost < 0
+  ) {
+    return { success: false, error: "Cost must be 0 or greater" };
+  }
 
   // Get current user's profile id
   const {
@@ -61,6 +70,10 @@ export async function createEvent(input: CreateEventInput) {
       date: input.date,
       location: input.location.trim(),
       description: input.description?.trim() || null,
+      estimated_cost:
+        input.estimated_cost !== undefined && input.estimated_cost !== null
+          ? input.estimated_cost
+          : null,
       reminder_hours: input.reminder_hours ?? 24,
       created_by: profile.id,
     })
@@ -69,6 +82,16 @@ export async function createEvent(input: CreateEventInput) {
 
   if (error) {
     return { success: false, error: error.message };
+  }
+
+  // Insert event categories
+  if (input.category_ids?.length) {
+    await supabase.from("event_categories").insert(
+      input.category_ids.map((cid) => ({
+        event_id: event.id,
+        category_id: cid,
+      }))
+    );
   }
 
   // Notify all members about the new event
@@ -84,6 +107,7 @@ export async function createEvent(input: CreateEventInput) {
 
   revalidatePath("/");
   revalidatePath("/calendar");
+  revalidatePath("/stats");
   redirect(`/events/${event.id}`);
 }
 
@@ -129,6 +153,8 @@ export async function updateEvent(
     updates.description = input.description?.trim() || null;
   if (input.reminder_hours !== undefined)
     updates.reminder_hours = input.reminder_hours;
+  if (input.estimated_cost !== undefined)
+    updates.estimated_cost = input.estimated_cost;
 
   const { error } = await supabase
     .from("events")
@@ -137,6 +163,19 @@ export async function updateEvent(
 
   if (error) {
     return { success: false, error: error.message };
+  }
+
+  // Update event categories (delete + reinsert)
+  if (input.category_ids !== undefined) {
+    await supabase.from("event_categories").delete().eq("event_id", eventId);
+    if (input.category_ids.length > 0) {
+      await supabase.from("event_categories").insert(
+        input.category_ids.map((cid) => ({
+          event_id: eventId,
+          category_id: cid,
+        }))
+      );
+    }
   }
 
   // Notify all members about the update
@@ -153,6 +192,7 @@ export async function updateEvent(
 
   revalidatePath("/");
   revalidatePath("/calendar");
+  revalidatePath("/stats");
   revalidatePath(`/events/${eventId}`);
   return { success: true };
 }
@@ -205,5 +245,6 @@ export async function deleteEvent(eventId: string) {
 
   revalidatePath("/");
   revalidatePath("/calendar");
+  revalidatePath("/stats");
   redirect("/");
 }

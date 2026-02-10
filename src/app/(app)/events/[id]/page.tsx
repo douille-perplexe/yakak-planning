@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { CalendarDays, MapPin, Clock, ArrowLeft } from "lucide-react";
+import { CalendarDays, MapPin, Clock, ArrowLeft, Euro } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { RsvpButtons } from "@/components/rsvp-buttons";
@@ -11,7 +11,17 @@ import { EventActions } from "@/components/event-actions";
 import { CommentThread } from "@/components/comment-thread";
 import { PollCard } from "@/components/poll-card";
 import { CreatePollForm } from "@/components/create-poll-form";
-import { Profile, RsvpStatus, CommentWithUser, PollWithDetails } from "@/lib/types";
+import {
+  Profile,
+  RsvpStatus,
+  CommentWithUser,
+  PollWithDetails,
+  ActivityCategory,
+} from "@/lib/types";
+import {
+  getCategoryIcon,
+  getCategoryColorClass,
+} from "@/components/category-picker";
 
 export default async function EventDetailPage({
   params,
@@ -64,6 +74,26 @@ export default async function EventDetailPage({
       </div>
     );
   }
+
+  // Fetch event categories with join to activity_categories
+  const { data: eventCategories } = await supabase
+    .from("event_categories")
+    .select("category_id, category:activity_categories(*)")
+    .eq("event_id", id);
+
+  const eventCategoryIds = (eventCategories ?? []).map(
+    (ec) => ec.category_id
+  );
+  const categoryDetails = (eventCategories ?? [])
+    .map((ec) => ec.category as unknown as ActivityCategory)
+    .filter(Boolean)
+    .sort((a, b) => a.position - b.position);
+
+  // Fetch all categories for the edit dialog
+  const { data: allCategories } = await supabase
+    .from("activity_categories")
+    .select("*")
+    .order("position", { ascending: true });
 
   // Fetch RSVPs with user profiles
   const { data: rsvps } = await supabase
@@ -222,6 +252,8 @@ export default async function EventDetailPage({
             event={event}
             isCreator={isCreator}
             isAdmin={isAdmin}
+            categories={(allCategories ?? []) as ActivityCategory[]}
+            eventCategoryIds={eventCategoryIds}
           />
         )}
       </div>
@@ -248,6 +280,34 @@ export default async function EventDetailPage({
               <span>Reminder {event.reminder_hours}h before</span>
             </div>
           </div>
+
+          {/* Categories */}
+          {categoryDetails.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {categoryDetails.map((cat) => {
+                const Icon = getCategoryIcon(cat.icon);
+                return (
+                  <Badge
+                    key={cat.id}
+                    className={
+                      getCategoryColorClass(cat.color) + " border"
+                    }
+                  >
+                    <Icon className="h-3 w-3" />
+                    {cat.name}
+                  </Badge>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Cost */}
+          {event.estimated_cost != null && (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Euro className="h-4 w-4" />
+              <span>~{Number(event.estimated_cost).toFixed(2)} EUR</span>
+            </div>
+          )}
 
           {event.description && (
             <p className="text-foreground mt-4">{event.description}</p>
