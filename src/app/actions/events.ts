@@ -1,8 +1,13 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import {
+  createNotifications,
+  getAllApprovedMemberIds,
+  getEventRespondersIds,
+} from "@/lib/notifications";
 
 interface CreateEventInput {
   title: string;
@@ -66,6 +71,17 @@ export async function createEvent(input: CreateEventInput) {
     return { success: false, error: error.message };
   }
 
+  // Notify all members about the new event
+  getAllApprovedMemberIds().then((memberIds) =>
+    createNotifications({
+      type: "event_created",
+      referenceId: event.id,
+      message: `New event: ${event.title}`,
+      recipientIds: memberIds,
+      excludeUserId: profile.id,
+    })
+  ).catch(() => {});
+
   revalidatePath("/");
   revalidatePath("/calendar");
   redirect(`/events/${event.id}`);
@@ -76,6 +92,18 @@ export async function updateEvent(
   input: Partial<CreateEventInput>
 ) {
   const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Not authenticated" };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("user_id", user.id)
+    .single();
+  if (!profile) return { success: false, error: "Profile not found" };
 
   const updates: Record<string, unknown> = {};
   if (input.title !== undefined) {
@@ -111,6 +139,18 @@ export async function updateEvent(
     return { success: false, error: error.message };
   }
 
+  // Notify all members about the update
+  const eventTitle = (updates.title as string) || "An event";
+  getAllApprovedMemberIds().then((memberIds) =>
+    createNotifications({
+      type: "event_updated",
+      referenceId: eventId,
+      message: `Event updated: ${eventTitle}`,
+      recipientIds: memberIds,
+      excludeUserId: profile.id,
+    })
+  ).catch(() => {});
+
   revalidatePath("/");
   revalidatePath("/calendar");
   revalidatePath(`/events/${eventId}`);
@@ -120,6 +160,28 @@ export async function updateEvent(
 export async function deleteEvent(eventId: string) {
   const supabase = await createClient();
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Not authenticated" };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("user_id", user.id)
+    .single();
+  if (!profile) return { success: false, error: "Profile not found" };
+
+  // Fetch event title and responders before soft-delete (RLS hides deleted events)
+  const serviceClient = await createServiceClient();
+  const { data: eventData } = await serviceClient
+    .from("events")
+    .select("title")
+    .eq("id", eventId)
+    .single();
+
+  const respondersPromise = getEventRespondersIds(eventId);
+
   const { error } = await supabase
     .from("events")
     .update({ deleted_at: new Date().toISOString() })
@@ -128,6 +190,18 @@ export async function deleteEvent(eventId: string) {
   if (error) {
     return { success: false, error: error.message };
   }
+
+  // Notify yes/maybe responders about cancellation
+  const eventTitle = eventData?.title || "An event";
+  respondersPromise.then((responderIds) =>
+    createNotifications({
+      type: "event_cancelled",
+      referenceId: eventId,
+      message: `Event cancelled: ${eventTitle}`,
+      recipientIds: responderIds,
+      excludeUserId: profile.id,
+    })
+  ).catch(() => {});
 
   revalidatePath("/");
   revalidatePath("/calendar");

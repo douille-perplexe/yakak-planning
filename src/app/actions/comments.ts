@@ -2,6 +2,11 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import {
+  createNotifications,
+  getEventCreatorId,
+  getEventRespondersIds,
+} from "@/lib/notifications";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
@@ -79,6 +84,24 @@ export async function createComment(
   if (error) {
     return { success: false, error: error.message };
   }
+
+  // Notify event creator + yes/maybe responders about new comment
+  Promise.all([
+    getEventCreatorId(eventId),
+    getEventRespondersIds(eventId),
+  ]).then(([creatorId, responderIds]) => {
+    const recipientIds = [...new Set([
+      ...(creatorId ? [creatorId] : []),
+      ...responderIds,
+    ])];
+    return createNotifications({
+      type: "new_comment",
+      referenceId: eventId,
+      message: `New comment on event`,
+      recipientIds,
+      excludeUserId: profile.id,
+    });
+  }).catch(() => {});
 
   revalidatePath(`/events/${eventId}`);
   return { success: true };

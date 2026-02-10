@@ -2,6 +2,11 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import {
+  createNotifications,
+  getAllApprovedMemberIds,
+  getPollVoterIds,
+} from "@/lib/notifications";
 
 export async function createPoll(
   eventId: string,
@@ -59,6 +64,17 @@ export async function createPoll(
 
   if (optError) return { success: false, error: optError.message };
 
+  // Notify all members about the new poll
+  getAllApprovedMemberIds().then((memberIds) =>
+    createNotifications({
+      type: "poll_created",
+      referenceId: eventId,
+      message: `New poll: ${poll.question}`,
+      recipientIds: memberIds,
+      excludeUserId: profile.id,
+    })
+  ).catch(() => {});
+
   revalidatePath(`/events/${eventId}`);
   return { success: true };
 }
@@ -114,12 +130,35 @@ export async function votePoll(
 export async function closePoll(pollId: string, eventId: string) {
   const supabase = await createClient();
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Not authenticated" };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("user_id", user.id)
+    .single();
+  if (!profile) return { success: false, error: "Profile not found" };
+
   const { error } = await supabase
     .from("polls")
     .update({ is_closed: true })
     .eq("id", pollId);
 
   if (error) return { success: false, error: error.message };
+
+  // Notify voters that the poll is closed
+  getPollVoterIds(pollId).then((voterIds) =>
+    createNotifications({
+      type: "poll_closed",
+      referenceId: eventId,
+      message: `A poll has been closed`,
+      recipientIds: voterIds,
+      excludeUserId: profile.id,
+    })
+  ).catch(() => {});
 
   revalidatePath(`/events/${eventId}`);
   return { success: true };

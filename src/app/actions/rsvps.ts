@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { RsvpStatus } from "@/lib/types";
+import { createNotifications, getEventCreatorId } from "@/lib/notifications";
 
 const VALID_STATUSES: RsvpStatus[] = ["yes", "no", "maybe"];
 
@@ -50,6 +51,18 @@ export async function upsertRsvp(eventId: string, status: RsvpStatus) {
 
     if (error) return { success: false, error: error.message };
   }
+
+  // Notify event creator about the RSVP
+  getEventCreatorId(eventId).then((creatorId) => {
+    if (!creatorId) return;
+    return createNotifications({
+      type: "new_rsvp",
+      referenceId: eventId,
+      message: `New RSVP: ${status}`,
+      recipientIds: [creatorId],
+      excludeUserId: profile.id,
+    });
+  }).catch(() => {});
 
   revalidatePath(`/events/${eventId}`);
   revalidatePath("/");
