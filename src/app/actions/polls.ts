@@ -73,7 +73,7 @@ export async function createPoll(
       recipientIds: memberIds,
       excludeUserId: profile.id,
     })
-  ).catch(() => {});
+  ).catch((err) => console.error("[notify]", err));
 
   revalidatePath(`/events/${eventId}`);
   return { success: true };
@@ -158,7 +158,7 @@ export async function closePoll(pollId: string, eventId: string) {
       recipientIds: voterIds,
       excludeUserId: profile.id,
     })
-  ).catch(() => {});
+  ).catch((err) => console.error("[notify]", err));
 
   revalidatePath(`/events/${eventId}`);
   return { success: true };

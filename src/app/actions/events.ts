@@ -103,7 +103,7 @@ export async function createEvent(input: CreateEventInput) {
       recipientIds: memberIds,
       excludeUserId: profile.id,
     })
-  ).catch(() => {});
+  ).catch((err) => console.error("[notify]", err));
 
   revalidatePath("/");
   revalidatePath("/calendar");
@@ -188,7 +188,7 @@ export async function updateEvent(
       recipientIds: memberIds,
       excludeUserId: profile.id,
     })
-  ).catch(() => {});
+  ).catch((err) => console.error("[notify]", err));
 
   revalidatePath("/");
   revalidatePath("/calendar");
@@ -265,7 +265,7 @@ export async function deleteEvent(eventId: string) {
       recipientIds: responderIds,
       excludeUserId: profile.id,
     })
-  ).catch(() => {});
+  ).catch((err) => console.error("[notify]", err));
 
   revalidatePath("/");
   revalidatePath("/calendar");

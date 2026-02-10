@@ -62,7 +62,7 @@ export async function upsertRsvp(eventId: string, status: RsvpStatus) {
       recipientIds: [creatorId],
       excludeUserId: profile.id,
     });
-  }).catch(() => {});
+  }).catch((err) => console.error("[notify]", err));
 
   revalidatePath(`/events/${eventId}`);
   revalidatePath("/");
