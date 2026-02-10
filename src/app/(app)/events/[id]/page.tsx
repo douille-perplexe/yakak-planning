@@ -22,6 +22,8 @@ import {
   getCategoryIcon,
   getCategoryColorClass,
 } from "@/lib/category-utils";
+import { getWeatherForEvent, isOutdoorEvent, isWithinForecastRange } from "@/lib/weather";
+import { WeatherDisplay } from "@/components/weather-display";
 
 export default async function EventDetailPage({
   params,
@@ -88,6 +90,14 @@ export default async function EventDetailPage({
     .map((ec) => ec.category as unknown as ActivityCategory)
     .filter(Boolean)
     .sort((a, b) => a.position - b.position);
+
+  // Weather for outdoor events
+  const outdoor = isOutdoorEvent(categoryDetails);
+  const weather = outdoor
+    ? await getWeatherForEvent(event.location, event.date)
+    : null;
+  const showForecastHint =
+    outdoor && !weather && isWithinForecastRange(event.date) === false;
 
   // Fetch all categories for the edit dialog
   const { data: allCategories } = await supabase
@@ -280,6 +290,14 @@ export default async function EventDetailPage({
               <span>Reminder {event.reminder_hours}h before</span>
             </div>
           </div>
+
+          {/* Weather */}
+          {weather && <WeatherDisplay weather={weather} />}
+          {showForecastHint && (
+            <p className="text-sm text-muted-foreground">
+              Weather forecast available closer to the event
+            </p>
+          )}
 
           {/* Categories */}
           {categoryDetails.length > 0 && (

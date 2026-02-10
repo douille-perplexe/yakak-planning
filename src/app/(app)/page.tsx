@@ -4,7 +4,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CalendarDays, MapPin, Plus, Users } from "lucide-react";
 import Link from "next/link";
-import { RsvpStatus } from "@/lib/types";
+import { RsvpStatus, EventWeather } from "@/lib/types";
+import { getWeatherForEvent, isOutdoorEvent, isWithinForecastRange } from "@/lib/weather";
+import { WeatherBadge } from "@/components/weather-badge";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -22,10 +24,21 @@ export default async function DashboardPage() {
   // Fetch upcoming events (next 5)
   const { data: events } = await supabase
     .from("events")
-    .select("*, creator:profiles!events_created_by_fkey(id, display_name, avatar_url)")
+    .select("*, creator:profiles!events_created_by_fkey(id, display_name, avatar_url), event_categories(category:activity_categories(name))")
     .gte("date", new Date().toISOString())
     .order("date", { ascending: true })
     .limit(5);
+
+  // Fetch weather for outdoor events within 5 days
+  const weatherMap = new Map<string, EventWeather>();
+  for (const event of events ?? []) {
+    const cats = ((event as Record<string, unknown>).event_categories as { category: { name: string } }[] | null) ?? [];
+    const categories = cats.map((ec) => ec.category).filter(Boolean);
+    if (isOutdoorEvent(categories) && isWithinForecastRange(event.date)) {
+      const weather = await getWeatherForEvent(event.location, event.date);
+      if (weather) weatherMap.set(event.id, weather);
+    }
+  }
 
   // Fetch RSVPs for these events
   const eventIds = (events ?? []).map((e) => e.id);
@@ -189,6 +202,9 @@ export default async function DashboardPage() {
                               <MapPin className="h-3.5 w-3.5" />
                               {event.location}
                             </span>
+                            {weatherMap.has(event.id) && (
+                              <WeatherBadge weather={weatherMap.get(event.id)!} />
+                            )}
                           </div>
                           <p className="text-sm text-muted-foreground">
                             {yes} going &middot; {maybe} maybe

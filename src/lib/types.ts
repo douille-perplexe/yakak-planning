@@ -111,6 +111,16 @@ export interface PollWithDetails extends Poll {
   total_votes: number;
 }
 
+export interface EventWeather {
+  temp: number;
+  feelsLike: number;
+  description: string;
+  icon: string;
+  main: string;
+  humidity: number;
+  windSpeed: number;
+}
+
 export interface EventWithCreator extends Event {
   creator: Pick<Profile, "id" | "display_name" | "avatar_url">;
 }

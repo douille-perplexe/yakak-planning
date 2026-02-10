@@ -7,12 +7,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import Link from "next/link";
 import { Event } from "@/lib/types";
+import { WeatherBadgeClient } from "@/components/weather-badge";
+
+interface EventWithCategories extends Event {
+  event_categories: { category: { name: string } }[];
+}
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [events, setEvents] = useState<Event[]>([]);
+  const [events, setEvents] = useState<EventWithCategories[]>([]);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
 
   const year = currentDate.getFullYear();
@@ -25,12 +30,12 @@ export default function CalendarPage() {
 
     const { data } = await supabase
       .from("events")
-      .select("*")
+      .select("*, event_categories(category:activity_categories(name))")
       .gte("date", startOfMonth)
       .lte("date", endOfMonth)
       .order("date", { ascending: true });
 
-    setEvents(data ?? []);
+    setEvents((data as EventWithCategories[] | null) ?? []);
   }, [year, month]);
 
   useEffect(() => {
@@ -188,9 +193,17 @@ export default function CalendarPage() {
                     <div className="flex items-center justify-between p-3 rounded-lg hover:bg-muted transition-colors">
                       <div>
                         <p className="font-medium">{event.title}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {event.location}
-                        </p>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <span>{event.location}</span>
+                          {event.event_categories?.some(
+                            (ec) => ec.category?.name === "Outdoor"
+                          ) && (
+                            <WeatherBadgeClient
+                              location={event.location}
+                              date={event.date}
+                            />
+                          )}
+                        </div>
                       </div>
                     </div>
                   </Link>

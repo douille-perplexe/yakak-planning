@@ -13,6 +13,7 @@ interface SendNotificationEmailParams {
   subject: string;
   message: string;
   eventId?: string;
+  weatherHtml?: string;
 }
 
 export async function sendNotificationEmail({
@@ -20,6 +21,7 @@ export async function sendNotificationEmail({
   subject,
   message,
   eventId,
+  weatherHtml,
 }: SendNotificationEmailParams) {
   const client = getResend();
   if (!client) {
@@ -41,6 +43,7 @@ export async function sendNotificationEmail({
         </div>
         <h1 style="margin: 8px 0 0; font-size: 20px; color: #1a1a1a;">Yakak</h1>
       </div>
+      ${weatherHtml ? `<div style="background: #EFF6FF; border-radius: 8px; padding: 12px; margin-bottom: 16px; text-align: center;">${weatherHtml}</div>` : ""}
       <div style="background: #f9fafb; border-radius: 8px; padding: 20px; margin-bottom: 24px;">
         <p style="margin: 0; font-size: 15px; color: #374151; line-height: 1.5;">
           ${message}

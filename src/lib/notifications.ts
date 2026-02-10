@@ -8,6 +8,7 @@ interface CreateNotificationsParams {
   message: string;
   recipientIds: string[];
   excludeUserId?: string;
+  weatherHtml?: string;
 }
 
 export async function createNotifications({
@@ -16,6 +17,7 @@ export async function createNotifications({
   message,
   recipientIds,
   excludeUserId,
+  weatherHtml,
 }: CreateNotificationsParams) {
   const supabase = await createServiceClient();
 
@@ -77,6 +79,7 @@ export async function createNotifications({
           subject: message,
           message,
           eventId: referenceId,
+          weatherHtml,
         }).catch((err) => {
           console.error(
             `[email] Failed to send to ${profile.email}:`,
