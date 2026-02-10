@@ -69,6 +69,8 @@ export function EventActions({
   const handleDelete = async () => {
     setDeleting(true);
     await deleteEvent(eventId);
+    setDeleting(false);
+    setDeleteOpen(false);
   };
 
   // Format date for datetime-local input
