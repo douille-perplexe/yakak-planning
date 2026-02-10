@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, Home, Settings, Bell, LogOut } from "lucide-react";
+import { CalendarDays, Home, Settings, LogOut } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -10,10 +10,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { Profile } from "@/lib/types";
+import { Profile, Notification } from "@/lib/types";
+import { NotificationBell } from "@/components/notification-bell";
 
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: Home },
@@ -21,7 +21,13 @@ const NAV_ITEMS = [
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
-export function NavBar({ profile }: { profile: Profile }) {
+interface NavBarProps {
+  profile: Profile;
+  notifications: Notification[];
+  unreadCount: number;
+}
+
+export function NavBar({ profile, notifications, unreadCount }: NavBarProps) {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -73,6 +79,19 @@ export function NavBar({ profile }: { profile: Profile }) {
             })}
           </nav>
 
+          {/* Notifications */}
+          <div className="border-t border-border px-3 py-3">
+            <div className="flex items-center gap-3 px-3">
+              <NotificationBell
+                initialNotifications={notifications}
+                initialUnreadCount={unreadCount}
+              />
+              <span className="text-sm font-medium text-muted-foreground">
+                Notifications
+              </span>
+            </div>
+          </div>
+
           {/* User section */}
           <div className="border-t border-border p-4">
             <DropdownMenu>
@@ -114,9 +133,10 @@ export function NavBar({ profile }: { profile: Profile }) {
             <span className="text-lg font-bold text-foreground">Yakak</span>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="relative" disabled>
-              <Bell className="h-5 w-5" />
-            </Button>
+            <NotificationBell
+              initialNotifications={notifications}
+              initialUnreadCount={unreadCount}
+            />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button>
