@@ -1,9 +1,12 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+let resend: Resend | null = null;
 
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+function getResend(): Resend | null {
+  if (!process.env.RESEND_API_KEY) return null;
+  if (!resend) resend = new Resend(process.env.RESEND_API_KEY);
+  return resend;
+}
 
 interface SendNotificationEmailParams {
   to: string;
@@ -18,7 +21,11 @@ export async function sendNotificationEmail({
   message,
   eventId,
 }: SendNotificationEmailParams) {
-  const eventLink = eventId ? `${APP_URL}/events/${eventId}` : APP_URL;
+  const client = getResend();
+  if (!client) return; // No API key configured — skip silently
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const eventLink = eventId ? `${appUrl}/events/${eventId}` : appUrl;
 
   const html = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
@@ -44,8 +51,10 @@ export async function sendNotificationEmail({
     </div>
   `;
 
-  await resend.emails.send({
-    from: FROM_EMAIL,
+  const fromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
+
+  await client.emails.send({
+    from: fromEmail,
     to,
     subject: `Yakak: ${subject}`,
     html,
