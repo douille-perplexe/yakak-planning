@@ -101,3 +101,32 @@ export interface EventWithCreator extends Event {
 export interface RsvpWithUser extends Rsvp {
   user: Pick<Profile, "id" | "display_name" | "avatar_url">;
 }
+
+export type NotificationType =
+  | "event_created"
+  | "event_updated"
+  | "event_cancelled"
+  | "new_comment"
+  | "new_rsvp"
+  | "poll_created"
+  | "poll_closed"
+  | "event_reminder"
+  | "availability_signal";
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  type: NotificationType;
+  reference_id: string | null;
+  message: string;
+  read: boolean;
+  created_at: string;
+}
+
+export interface NotificationPreference {
+  id: string;
+  user_id: string;
+  type: NotificationType;
+  email_enabled: boolean;
+  in_app_enabled: boolean;
+}
