@@ -14,6 +14,8 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { Profile, Notification } from "@/lib/types";
 import { NotificationBell } from "@/components/notification-bell";
+import Image from "next/image";
+import logoIcon from "@/app/icon.png";
 
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: Home },
@@ -50,11 +52,7 @@ export function NavBar({ profile, notifications, unreadCount }: NavBarProps) {
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="flex items-center gap-2 px-6 py-5 border-b border-border">
-            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">
-                Y
-              </span>
-            </div>
+            <Image src={logoIcon} alt="Yakak" className="h-8 w-8 rounded-lg" width={32} height={32} />
             <span className="text-xl font-bold text-foreground">Yakak</span>
           </div>
 
@@ -126,11 +124,7 @@ export function NavBar({ profile, notifications, unreadCount }: NavBarProps) {
       <div className="md:hidden fixed top-0 left-0 right-0 z-50 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
-            <div className="h-7 w-7 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-xs">
-                Y
-              </span>
-            </div>
+            <Image src={logoIcon} alt="Yakak" className="h-7 w-7 rounded-lg" width={28} height={28} />
             <span className="text-lg font-bold text-foreground">Yakak</span>
           </div>
           <div className="flex items-center gap-2">
