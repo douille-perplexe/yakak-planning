@@ -21,7 +21,7 @@ import {
 import {
   getCategoryIcon,
   getCategoryColorClass,
-} from "@/components/category-picker";
+} from "@/lib/category-utils";
 
 export default async function EventDetailPage({
   params,

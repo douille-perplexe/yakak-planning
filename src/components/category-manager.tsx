@@ -23,7 +23,7 @@ import {
 import {
   getCategoryIcon,
   getCategoryColorClass,
-} from "@/components/category-picker";
+} from "@/lib/category-utils";
 
 interface CategoryManagerProps {
   categories: ActivityCategory[];

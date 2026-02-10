@@ -21,7 +21,7 @@ import { ActivityCategory } from "@/lib/types";
 import {
   getCategoryIcon,
   getCategoryColorClass,
-} from "@/components/category-picker";
+} from "@/lib/category-utils";
 
 interface MemberProfile {
   id: string;
