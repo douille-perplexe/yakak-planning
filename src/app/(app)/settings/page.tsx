@@ -3,8 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Profile } from "@/lib/types";
+import { Profile, NotificationPreference } from "@/lib/types";
 import { AdminPanel } from "@/components/admin-panel";
+import { NotificationPreferences } from "@/components/notification-preferences";
 
 export default async function SettingsPage() {
   const supabase = await createClient();
@@ -18,6 +19,11 @@ export default async function SettingsPage() {
     .select("*")
     .eq("user_id", user!.id)
     .single();
+
+  const { data: notifPrefs } = await supabase
+    .from("notification_preferences")
+    .select("*")
+    .order("type");
 
   const isAdmin = profile?.role === "admin";
 
@@ -68,6 +74,11 @@ export default async function SettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Notification preferences */}
+      <NotificationPreferences
+        preferences={(notifPrefs ?? []) as NotificationPreference[]}
+      />
 
       {/* Admin section */}
       {isAdmin && (
