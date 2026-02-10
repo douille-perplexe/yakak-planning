@@ -1,5 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import { NotificationType } from "@/lib/types";
+import { sendNotificationEmail } from "@/lib/email";
 
 interface CreateNotificationsParams {
   type: NotificationType;
@@ -25,32 +26,59 @@ export async function createNotifications({
 
   if (filteredIds.length === 0) return;
 
-  // Check in_app_enabled preferences for each recipient
+  // Check preferences for each recipient
   const { data: prefs } = await supabase
     .from("notification_preferences")
-    .select("user_id, in_app_enabled")
+    .select("user_id, in_app_enabled, email_enabled")
     .eq("type", type)
     .in("user_id", filteredIds);
 
-  // Build a set of users who have in-app disabled
-  const disabledSet = new Set(
+  // Build preference maps
+  const inAppDisabledSet = new Set(
     (prefs ?? [])
       .filter((p: { user_id: string; in_app_enabled: boolean }) => !p.in_app_enabled)
       .map((p: { user_id: string }) => p.user_id)
   );
 
-  const eligibleIds = filteredIds.filter((id) => !disabledSet.has(id));
-  if (eligibleIds.length === 0) return;
+  const emailEnabledSet = new Set(
+    (prefs ?? [])
+      .filter((p: { user_id: string; email_enabled: boolean }) => p.email_enabled)
+      .map((p: { user_id: string }) => p.user_id)
+  );
 
-  const rows = eligibleIds.map((userId) => ({
-    user_id: userId,
-    type,
-    reference_id: referenceId,
-    message,
-    read: false,
-  }));
+  // In-app notifications
+  const inAppEligibleIds = filteredIds.filter((id) => !inAppDisabledSet.has(id));
+  if (inAppEligibleIds.length > 0) {
+    const rows = inAppEligibleIds.map((userId) => ({
+      user_id: userId,
+      type,
+      reference_id: referenceId,
+      message,
+      read: false,
+    }));
+    await supabase.from("notifications").insert(rows);
+  }
 
-  await supabase.from("notifications").insert(rows);
+  // Email notifications
+  const emailEligibleIds = filteredIds.filter((id) => emailEnabledSet.has(id));
+  if (emailEligibleIds.length > 0) {
+    // Fetch email addresses for eligible recipients
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, email")
+      .in("id", emailEligibleIds);
+
+    for (const profile of profiles ?? []) {
+      if (profile.email) {
+        sendNotificationEmail({
+          to: profile.email,
+          subject: message,
+          message,
+          eventId: referenceId,
+        }).catch(() => {});
+      }
+    }
+  }
 }
 
 export async function getAllApprovedMemberIds(): Promise<string[]> {

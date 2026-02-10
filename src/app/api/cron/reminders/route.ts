@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { createServiceClient } from "@/lib/supabase/server";
+import { createNotifications, getEventRespondersIds } from "@/lib/notifications";
 
 export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization");
@@ -6,10 +8,48 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Phase 3: Process event reminders here
-  // - Query events with reminders due in the next 24 hours
-  // - Send emails via Resend to members who RSVP'd yes/maybe
-  // - Mark reminders as sent to avoid duplicates
+  const supabase = await createServiceClient();
 
-  return NextResponse.json({ success: true, message: "No reminders to process (Phase 3)" });
+  // Find events happening in the next 24 hours that are not deleted
+  const now = new Date();
+  const in24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+  const { data: upcomingEvents } = await supabase
+    .from("events")
+    .select("id, title")
+    .is("deleted_at", null)
+    .gte("date", now.toISOString())
+    .lte("date", in24h.toISOString());
+
+  let processed = 0;
+
+  for (const event of upcomingEvents ?? []) {
+    // Dedup: check if an event_reminder notification already exists for this event
+    const { count } = await supabase
+      .from("notifications")
+      .select("*", { count: "exact", head: true })
+      .eq("type", "event_reminder")
+      .eq("reference_id", event.id);
+
+    if ((count ?? 0) > 0) continue;
+
+    // Get yes/maybe responders
+    const responderIds = await getEventRespondersIds(event.id);
+    if (responderIds.length === 0) continue;
+
+    await createNotifications({
+      type: "event_reminder",
+      referenceId: event.id,
+      message: `Reminder: ${event.title} is coming up soon!`,
+      recipientIds: responderIds,
+    });
+
+    processed++;
+  }
+
+  return NextResponse.json({
+    success: true,
+    processed,
+    total: upcomingEvents?.length ?? 0,
+  });
 }
