@@ -220,9 +220,33 @@ export async function deleteEvent(eventId: string) {
     .eq("id", eventId)
     .single();
 
+  // Verify the user is the creator or an admin
+  const { data: eventCheck } = await supabase
+    .from("events")
+    .select("created_by")
+    .eq("id", eventId)
+    .single();
+
+  if (!eventCheck) return { success: false, error: "Event not found" };
+
+  const { data: profileCheck } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", profile.id)
+    .single();
+
+  if (
+    eventCheck.created_by !== profile.id &&
+    profileCheck?.role !== "admin"
+  ) {
+    return { success: false, error: "Not authorized" };
+  }
+
   const respondersPromise = getEventRespondersIds(eventId);
 
-  const { error } = await supabase
+  // Use service client because RLS SELECT policy filters deleted_at IS NULL,
+  // which can cause the regular client's update to silently affect 0 rows
+  const { error } = await serviceClient
     .from("events")
     .update({ deleted_at: new Date().toISOString() })
     .eq("id", eventId);
