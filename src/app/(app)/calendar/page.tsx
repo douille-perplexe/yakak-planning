@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight, Clock, MapPin, Plus } from "lucide-react";
 import Link from "next/link";
+import { Fab } from "@/components/fab";
 import { Event, ActivityCategory } from "@/lib/types";
 import {
   getCategoryBarColor,
@@ -116,7 +117,7 @@ export default function CalendarPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-foreground">Calendar</h1>
-        <Link href="/events/new">
+        <Link href="/events/new" className="hidden md:block">
           <Button>
             <Plus className="mr-2 h-4 w-4" />
             New Event
@@ -314,6 +315,7 @@ export default function CalendarPage() {
           </CardContent>
         </Card>
       )}
+      <Fab href="/events/new" />
     </div>
   );
 }
