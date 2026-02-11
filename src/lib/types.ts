@@ -21,6 +21,7 @@ export interface Event {
   description: string | null;
   estimated_cost: number | null;
   reminder_hours: number;
+  twitch_stream_id: string | null;
   created_by: string;
   deleted_at: string | null;
   created_at: string;
@@ -146,4 +147,26 @@ export interface NotificationPreference {
   type: NotificationType;
   email_enabled: boolean;
   in_app_enabled: boolean;
+}
+
+export interface TwitchChannel {
+  id: string;
+  channel_name: string;
+  twitch_user_id: string | null;
+  display_name: string | null;
+  profile_image_url: string | null;
+  description: string | null;
+  broadcaster_type: string | null;
+  is_live: boolean;
+  current_stream_id: string | null;
+  current_title: string | null;
+  current_category: string | null;
+  current_viewer_count: number;
+  current_thumbnail_url: string | null;
+  stream_started_at: string | null;
+  last_checked_at: string | null;
+  auto_create_events: boolean;
+  added_by: string;
+  created_at: string;
+  updated_at: string;
 }

@@ -4,8 +4,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CalendarDays, MapPin, Plus, Users } from "lucide-react";
 import Link from "next/link";
-import { RsvpStatus } from "@/lib/types";
+import { RsvpStatus, TwitchChannel } from "@/lib/types";
 import { Fab } from "@/components/fab";
+import { TwitchLiveCard } from "@/components/twitch-live-card";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -54,6 +55,12 @@ export default async function DashboardPage() {
     .from("profiles")
     .select("*", { count: "exact", head: true })
     .eq("status", "approved");
+
+  // Fetch twitch channels
+  const { data: twitchChannels } = await supabase
+    .from("twitch_channels")
+    .select("*")
+    .order("created_at", { ascending: true });
 
   const getRsvpSummary = (eventId: string) => {
     const eventRsvps = (rsvps ?? []).filter((r) => r.event_id === eventId);
@@ -146,6 +153,9 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Twitch Live Streams */}
+      <TwitchLiveCard channels={(twitchChannels ?? []) as TwitchChannel[]} />
 
       {/* Upcoming Events */}
       <div>
