@@ -3,11 +3,16 @@
 import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight, Clock, MapPin, Plus } from "lucide-react";
 import Link from "next/link";
 import { Event, ActivityCategory } from "@/lib/types";
-import { getCategoryBarColor } from "@/lib/category-utils";
+import {
+  getCategoryBarColor,
+  getCategoryColorClass,
+  getCategoryIcon,
+} from "@/lib/category-utils";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const MAX_VISIBLE_EVENTS = 2;
@@ -266,7 +271,7 @@ export default function CalendarPage() {
                   return (
                     <Link key={event.id} href={`/events/${event.id}`}>
                       <div className="flex items-center justify-between p-3 rounded-lg hover:bg-muted transition-colors">
-                        <div className="min-w-0">
+                        <div className="min-w-0 space-y-1">
                           <p className="font-medium">{event.title}</p>
                           <div className="flex items-center gap-3 text-sm text-muted-foreground">
                             <span className="flex items-center gap-1">
@@ -280,6 +285,25 @@ export default function CalendarPage() {
                               </span>
                             )}
                           </div>
+                          {event.categories.length > 0 && (
+                            <div className="flex flex-wrap gap-1">
+                              {event.categories.map((cat) => {
+                                const Icon = getCategoryIcon(cat.icon);
+                                return (
+                                  <Badge
+                                    key={cat.id}
+                                    className={
+                                      getCategoryColorClass(cat.color) +
+                                      " border text-[10px] px-1.5 py-0"
+                                    }
+                                  >
+                                    <Icon className="h-2.5 w-2.5" />
+                                    {cat.name}
+                                  </Badge>
+                                );
+                              })}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </Link>
