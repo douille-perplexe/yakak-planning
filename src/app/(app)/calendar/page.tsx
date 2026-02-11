@@ -6,13 +6,19 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import Link from "next/link";
-import { Event } from "@/lib/types";
+import { Event, ActivityCategory } from "@/lib/types";
+import { getCategoryBarColor } from "@/lib/category-utils";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const MAX_VISIBLE_EVENTS = 2;
+
+interface EventWithCategories extends Event {
+  categories: ActivityCategory[];
+}
 
 export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [events, setEvents] = useState<Event[]>([]);
+  const [events, setEvents] = useState<EventWithCategories[]>([]);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
 
   const year = currentDate.getFullYear();
@@ -23,14 +29,40 @@ export default function CalendarPage() {
     const startOfMonth = new Date(year, month, 1).toISOString();
     const endOfMonth = new Date(year, month + 1, 0, 23, 59, 59).toISOString();
 
-    const { data } = await supabase
+    const { data: eventsData } = await supabase
       .from("events")
       .select("*")
+      .is("deleted_at", null)
       .gte("date", startOfMonth)
       .lte("date", endOfMonth)
       .order("date", { ascending: true });
 
-    setEvents(data ?? []);
+    if (!eventsData || eventsData.length === 0) {
+      setEvents([]);
+      return;
+    }
+
+    const eventIds = eventsData.map((e) => e.id);
+    const { data: eventCategories } = await supabase
+      .from("event_categories")
+      .select("event_id, category:activity_categories(*)")
+      .in("event_id", eventIds);
+
+    const categoryMap = new Map<string, ActivityCategory[]>();
+    for (const ec of eventCategories ?? []) {
+      const cat = ec.category as unknown as ActivityCategory;
+      if (!cat) continue;
+      const existing = categoryMap.get(ec.event_id) ?? [];
+      existing.push(cat);
+      categoryMap.set(ec.event_id, existing);
+    }
+
+    setEvents(
+      eventsData.map((e) => ({
+        ...e,
+        categories: categoryMap.get(e.id) ?? [],
+      }))
+    );
   }, [year, month]);
 
   useEffect(() => {
@@ -66,6 +98,13 @@ export default function CalendarPage() {
 
   const selectedDayEvents =
     selectedDay !== null ? getEventsForDay(selectedDay) : [];
+
+  const getBarColor = (event: EventWithCategories) => {
+    if (event.categories.length > 0) {
+      return getCategoryBarColor(event.categories[0].color);
+    }
+    return "bg-primary";
+  };
 
   return (
     <div className="space-y-6">
@@ -115,7 +154,10 @@ export default function CalendarPage() {
           <div className="grid grid-cols-7 gap-1">
             {/* Empty cells before first day */}
             {Array.from({ length: startDay }).map((_, i) => (
-              <div key={`empty-${i}`} className="aspect-square" />
+              <div
+                key={`empty-${i}`}
+                className="aspect-square sm:aspect-auto sm:min-h-[100px]"
+              />
             ))}
 
             {/* Day cells */}
@@ -123,12 +165,14 @@ export default function CalendarPage() {
               const day = i + 1;
               const dayEvents = getEventsForDay(day);
               const isSelected = selectedDay === day;
+              const visibleEvents = dayEvents.slice(0, MAX_VISIBLE_EVENTS);
+              const remaining = dayEvents.length - MAX_VISIBLE_EVENTS;
 
               return (
                 <button
                   key={day}
                   onClick={() => setSelectedDay(isSelected ? null : day)}
-                  className={`aspect-square rounded-lg flex flex-col items-center justify-center gap-0.5 text-sm transition-colors min-h-[44px] ${
+                  className={`rounded-lg flex flex-col items-start p-1 sm:p-1.5 text-sm transition-colors min-h-[44px] sm:aspect-auto sm:min-h-[100px] aspect-square ${
                     isSelected
                       ? "bg-primary text-primary-foreground"
                       : isToday(day)
@@ -136,19 +180,50 @@ export default function CalendarPage() {
                         : "hover:bg-muted"
                   }`}
                 >
-                  <span>{day}</span>
-                  {dayEvents.length > 0 && (
-                    <div className="flex gap-0.5">
-                      {dayEvents.slice(0, 3).map((_, j) => (
-                        <div
-                          key={j}
-                          className={`h-1.5 w-1.5 rounded-full ${
-                            isSelected ? "bg-primary-foreground" : "bg-primary"
-                          }`}
-                        />
-                      ))}
-                    </div>
-                  )}
+                  <span className="text-xs sm:text-sm leading-none mb-0.5 sm:mb-1">
+                    {day}
+                  </span>
+
+                  {/* Mobile: colored dots */}
+                  <div className="flex gap-0.5 sm:hidden">
+                    {dayEvents.slice(0, 3).map((event, j) => (
+                      <div
+                        key={j}
+                        className={`h-1.5 w-1.5 rounded-full ${
+                          isSelected
+                            ? "bg-primary-foreground"
+                            : getBarColor(event)
+                        }`}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Desktop: event bars */}
+                  <div className="hidden sm:flex flex-col gap-0.5 w-full min-w-0 overflow-hidden">
+                    {visibleEvents.map((event) => (
+                      <div
+                        key={event.id}
+                        className={`rounded px-1 py-0.5 text-[10px] leading-tight font-medium truncate ${
+                          isSelected
+                            ? "bg-primary-foreground/20 text-primary-foreground"
+                            : `${getBarColor(event)} text-white`
+                        }`}
+                      >
+                        {event.title}
+                      </div>
+                    ))}
+                    {remaining > 0 && (
+                      <span
+                        className={`text-[10px] leading-tight px-1 ${
+                          isSelected
+                            ? "text-primary-foreground/70"
+                            : "text-muted-foreground"
+                        }`}
+                      >
+                        +{remaining} more
+                      </span>
+                    )}
+                  </div>
                 </button>
               );
             })}

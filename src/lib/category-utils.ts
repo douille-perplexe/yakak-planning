@@ -46,3 +46,20 @@ export function getCategoryIcon(iconName: string): LucideIcon {
 export function getCategoryColorClass(color: string): string {
   return COLOR_MAP[color] || "bg-gray-100 text-gray-800 border-gray-200";
 }
+
+const BAR_COLOR_MAP: Record<string, string> = {
+  orange: "bg-orange-400",
+  purple: "bg-purple-400",
+  blue: "bg-blue-400",
+  green: "bg-green-400",
+  yellow: "bg-yellow-400",
+  sky: "bg-sky-400",
+  red: "bg-red-400",
+  indigo: "bg-indigo-400",
+  violet: "bg-violet-400",
+  pink: "bg-pink-400",
+};
+
+export function getCategoryBarColor(color: string): string {
+  return BAR_COLOR_MAP[color] || "bg-primary";
+}
