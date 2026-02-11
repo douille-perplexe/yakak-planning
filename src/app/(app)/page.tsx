@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { CalendarDays, MapPin, Plus, Users } from "lucide-react";
 import Link from "next/link";
 import { RsvpStatus } from "@/lib/types";
+import { Fab } from "@/components/fab";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -101,7 +102,7 @@ export default async function DashboardPage() {
             Here&apos;s what&apos;s coming up
           </p>
         </div>
-        <Link href="/events/new">
+        <Link href="/events/new" className="hidden md:block">
           <Button>
             <Plus className="mr-2 h-4 w-4" />
             New Event
@@ -208,6 +209,8 @@ export default async function DashboardPage() {
           </div>
         )}
       </div>
+
+      <Fab href="/events/new" />
     </div>
   );
 }

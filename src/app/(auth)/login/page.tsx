@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { signInWithGoogle } from "@/app/actions/auth";
@@ -10,11 +11,13 @@ export default function LoginPage() {
           <div className="text-center space-y-6">
             {/* Logo */}
             <div className="flex justify-center">
-              <div className="h-16 w-16 rounded-2xl bg-primary flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-2xl">
-                  Y
-                </span>
-              </div>
+              <Image
+                src="/icon.png"
+                alt="Yakak logo"
+                width={64}
+                height={64}
+                className="rounded-2xl"
+              />
             </div>
 
             <div>
