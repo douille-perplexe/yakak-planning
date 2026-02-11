@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, MapPin, Plus } from "lucide-react";
 import Link from "next/link";
 import { Event, ActivityCategory } from "@/lib/types";
 import { getCategoryBarColor } from "@/lib/category-utils";
@@ -258,18 +258,33 @@ export default function CalendarPage() {
               </div>
             ) : (
               <div className="space-y-2">
-                {selectedDayEvents.map((event) => (
-                  <Link key={event.id} href={`/events/${event.id}`}>
-                    <div className="flex items-center justify-between p-3 rounded-lg hover:bg-muted transition-colors">
-                      <div>
-                        <p className="font-medium">{event.title}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {event.location}
-                        </p>
+                {selectedDayEvents.map((event) => {
+                  const time = new Date(event.date).toLocaleTimeString(
+                    "en-US",
+                    { hour: "numeric", minute: "2-digit" }
+                  );
+                  return (
+                    <Link key={event.id} href={`/events/${event.id}`}>
+                      <div className="flex items-center justify-between p-3 rounded-lg hover:bg-muted transition-colors">
+                        <div className="min-w-0">
+                          <p className="font-medium">{event.title}</p>
+                          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {time}
+                            </span>
+                            {event.location && (
+                              <span className="flex items-center gap-1 truncate">
+                                <MapPin className="h-3 w-3 shrink-0" />
+                                {event.location}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </Link>
-                ))}
+                    </Link>
+                  );
+                })}
               </div>
             )}
           </CardContent>
