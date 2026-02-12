@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CalendarDays, MapPin, Plus, Users, ExternalLink } from "lucide-react";
+import { CalendarDays, MapPin, Plus, Users, ExternalLink, Pin } from "lucide-react";
 import Link from "next/link";
 import { RsvpStatus } from "@/lib/types";
 import { Fab } from "@/components/fab";
@@ -20,13 +20,15 @@ export default async function DashboardPage() {
     .eq("user_id", user!.id)
     .single();
 
-  // Fetch upcoming events (next 5)
-  const { data: events } = await supabase
+  // Fetch upcoming events (next 5), pinned first
+  const { data: rawEvents } = await supabase
     .from("events")
     .select("*, creator:profiles!events_created_by_fkey(id, display_name, avatar_url)")
     .gte("date", new Date().toISOString())
+    .order("is_pinned", { ascending: false })
     .order("date", { ascending: true })
     .limit(5);
+  const events = rawEvents;
 
   // Fetch RSVPs for these events
   const eventIds = (events ?? []).map((e) => e.id);
@@ -176,12 +178,14 @@ export default async function DashboardPage() {
               const userRsvp = getUserRsvp(event.id);
               return (
                 <Link key={event.id} href={`/events/${event.id}`}>
-                  <Card className="hover:shadow-md transition-shadow cursor-pointer">
+                  <Card className={`hover:shadow-md transition-shadow cursor-pointer${event.is_pinned ? " border-primary/50 bg-primary/5" : ""}`}>
                     <CardContent className="py-4">
                       <div className="flex items-start justify-between">
                         <div className="space-y-1">
-                          <h3 className="font-semibold text-foreground">
+                          <h3 className="font-semibold text-foreground flex items-center gap-2">
+                            {event.is_pinned && <Pin className="h-4 w-4 text-primary" />}
                             {event.title}
+                            {event.is_pinned && <Badge variant="outline" className="text-xs border-primary/50 text-primary">Pinned</Badge>}
                           </h3>
                           <div className="flex items-center gap-4 text-sm text-muted-foreground">
                             <span className="flex items-center gap-1">

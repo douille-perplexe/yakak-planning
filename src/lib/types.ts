@@ -21,6 +21,7 @@ export interface Event {
   description: string | null;
   estimated_cost: number | null;
   reminder_hours: number;
+  is_pinned: boolean;
   created_by: string;
   deleted_at: string | null;
   created_at: string;

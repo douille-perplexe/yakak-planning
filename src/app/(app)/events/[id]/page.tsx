@@ -3,11 +3,12 @@ import { notFound } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { CalendarDays, MapPin, Clock, ArrowLeft, Euro, ExternalLink } from "lucide-react";
+import { CalendarDays, MapPin, Clock, ArrowLeft, Euro, ExternalLink, Pin } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { RsvpButtons } from "@/components/rsvp-buttons";
 import { EventActions } from "@/components/event-actions";
+import { PinToggleButton } from "@/components/pin-toggle-button";
 import { CommentThread } from "@/components/comment-thread";
 import { PollCard } from "@/components/poll-card";
 import { CreatePollForm } from "@/components/create-poll-form";
@@ -250,22 +251,31 @@ export default async function EventDetailPage({
             Back
           </Button>
         </Link>
-        {(isCreator || isAdmin) && (
-          <EventActions
-            eventId={event.id}
-            event={event}
-            isCreator={isCreator}
-            isAdmin={isAdmin}
-            categories={(allCategories ?? []) as ActivityCategory[]}
-            eventCategoryIds={eventCategoryIds}
-          />
-        )}
+        <div className="flex items-center gap-2">
+          {isAdmin && (
+            <PinToggleButton eventId={event.id} isPinned={event.is_pinned} />
+          )}
+          {(isCreator || isAdmin) && (
+            <EventActions
+              eventId={event.id}
+              event={event}
+              isCreator={isCreator}
+              isAdmin={isAdmin}
+              categories={(allCategories ?? []) as ActivityCategory[]}
+              eventCategoryIds={eventCategoryIds}
+            />
+          )}
+        </div>
       </div>
 
       {/* Event details */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl">{event.title}</CardTitle>
+          <CardTitle className="text-2xl flex items-center gap-2">
+            {event.is_pinned && <Pin className="h-5 w-5 text-primary" />}
+            {event.title}
+            {event.is_pinned && <Badge variant="outline" className="text-xs border-primary/50 text-primary">Pinned</Badge>}
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col gap-3">
