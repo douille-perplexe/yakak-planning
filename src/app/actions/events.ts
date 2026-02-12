@@ -272,3 +272,52 @@ export async function deleteEvent(eventId: string) {
   revalidatePath("/stats");
   redirect("/");
 }
+
+export async function togglePinEvent(eventId: string) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Not authenticated" };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id, role")
+    .eq("user_id", user.id)
+    .single();
+
+  if (!profile || profile.role !== "admin") {
+    return { success: false, error: "Only admins can pin events" };
+  }
+
+  const { data: event } = await supabase
+    .from("events")
+    .select("id, is_pinned")
+    .eq("id", eventId)
+    .single();
+
+  if (!event) return { success: false, error: "Event not found" };
+
+  const newPinned = !event.is_pinned;
+
+  // If pinning, unpin all other events first
+  if (newPinned) {
+    await supabase
+      .from("events")
+      .update({ is_pinned: false })
+      .eq("is_pinned", true);
+  }
+
+  const { error } = await supabase
+    .from("events")
+    .update({ is_pinned: newPinned })
+    .eq("id", eventId);
+
+  if (error) return { success: false, error: error.message };
+
+  revalidatePath("/");
+  revalidatePath("/calendar");
+  revalidatePath(`/events/${eventId}`);
+  return { success: true, pinned: newPinned };
+}

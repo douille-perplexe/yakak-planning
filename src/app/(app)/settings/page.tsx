@@ -3,10 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Profile, NotificationPreference, ActivityCategory } from "@/lib/types";
+import { Profile, NotificationPreference, ActivityCategory, TwitchChannel } from "@/lib/types";
 import { AdminPanel } from "@/components/admin-panel";
 import { NotificationPreferences } from "@/components/notification-preferences";
 import { CategoryManager } from "@/components/category-manager";
+import { TwitchChannelManager } from "@/components/twitch-channel-manager";
 
 export default async function SettingsPage() {
   const supabase = await createClient();
@@ -31,6 +32,7 @@ export default async function SettingsPage() {
   let pendingUsers: Profile[] = [];
   let approvedMembers: Profile[] = [];
   let categories: ActivityCategory[] = [];
+  let twitchChannels: TwitchChannel[] = [];
 
   if (isAdmin) {
     const { data: pending } = await supabase
@@ -50,9 +52,15 @@ export default async function SettingsPage() {
       .select("*")
       .order("position", { ascending: true });
 
+    const { data: twChannels } = await supabase
+      .from("twitch_channels")
+      .select("*")
+      .order("created_at", { ascending: true });
+
     pendingUsers = (pending ?? []) as Profile[];
     approvedMembers = (members ?? []) as Profile[];
     categories = (cats ?? []) as ActivityCategory[];
+    twitchChannels = (twChannels ?? []) as TwitchChannel[];
   }
 
   return (
@@ -90,6 +98,9 @@ export default async function SettingsPage() {
 
       {/* Category management (admin) */}
       {isAdmin && <CategoryManager categories={categories} />}
+
+      {/* Twitch channel management (admin) */}
+      {isAdmin && <TwitchChannelManager channels={twitchChannels} />}
 
       {/* Admin section */}
       {isAdmin && (
