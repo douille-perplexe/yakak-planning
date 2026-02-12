@@ -130,6 +130,24 @@ export async function validateTwitchChannel(
   return users.length > 0 ? users[0] : null;
 }
 
+export async function fetchLiveStatuses(
+  channelNames: string[]
+): Promise<Map<string, TwitchStream>> {
+  if (channelNames.length === 0) return new Map();
+
+  try {
+    const token = await getAppToken();
+    const streams = await getStreams(token, channelNames);
+    const map = new Map<string, TwitchStream>();
+    for (const stream of streams) {
+      map.set(stream.user_login.toLowerCase(), stream);
+    }
+    return map;
+  } catch {
+    return new Map();
+  }
+}
+
 export async function pollTwitchChannels() {
   const supabase = await createServiceClient();
   const token = await getAppToken();

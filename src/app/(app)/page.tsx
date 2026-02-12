@@ -8,6 +8,7 @@ import { Fab } from "@/components/fab";
 import { MapLink } from "@/components/map-link";
 import { RsvpStatus, TwitchChannel } from "@/lib/types";
 import { TwitchLiveCard } from "@/components/twitch-live-card";
+import { fetchLiveStatuses } from "@/lib/twitch";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -63,11 +64,32 @@ export default async function DashboardPage() {
     .select("*", { count: "exact", head: true })
     .eq("status", "approved");
 
-  // Fetch twitch channels
+  // Fetch twitch channels and their real-time live status from Twitch API
   const { data: twitchChannels } = await supabase
     .from("twitch_channels")
     .select("*")
     .order("created_at", { ascending: true });
+
+  const channelNames = (twitchChannels ?? []).map((c: { channel_name: string }) => c.channel_name);
+  const liveStatuses = await fetchLiveStatuses(channelNames);
+
+  // Merge live data from Twitch API into channel objects
+  const enrichedChannels: TwitchChannel[] = (twitchChannels ?? []).map((ch: TwitchChannel) => {
+    const live = liveStatuses.get(ch.channel_name.toLowerCase());
+    if (live) {
+      return {
+        ...ch,
+        is_live: true,
+        current_stream_id: live.id,
+        current_title: live.title || ch.current_title,
+        current_category: live.game_name || ch.current_category,
+        current_viewer_count: live.viewer_count,
+        current_thumbnail_url: live.thumbnail_url || ch.current_thumbnail_url,
+        stream_started_at: live.started_at || ch.stream_started_at,
+      };
+    }
+    return { ...ch, is_live: false };
+  });
 
   const getRsvpSummary = (eventId: string) => {
     const eventRsvps = (rsvps ?? []).filter((r) => r.event_id === eventId);
@@ -163,8 +185,10 @@ export default async function DashboardPage() {
         </Card>
       </div>
 
-      {/* Twitch Live Streams */}
-      <TwitchLiveCard channels={(twitchChannels ?? []) as TwitchChannel[]} />
+      {/* Twitch Live Streams — above events when someone is live */}
+      {enrichedChannels.some((c) => c.is_live) && (
+        <TwitchLiveCard channels={enrichedChannels} />
+      )}
 
       {/* Upcoming Events */}
       <div>
@@ -227,6 +251,11 @@ export default async function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Twitch — below events when no one is live */}
+      {!enrichedChannels.some((c) => c.is_live) && enrichedChannels.length > 0 && (
+        <TwitchLiveCard channels={enrichedChannels} />
+      )}
 
       <Fab href="/events/new" />
     </div>
