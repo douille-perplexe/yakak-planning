@@ -2,9 +2,18 @@
 
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Star } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Star, Lock } from "lucide-react";
 import { AchievementDefinition, UserAchievementWithDefinition } from "@/lib/types";
-import { getAchievementIcon, getTierColorClass } from "@/lib/achievement-utils";
+import { getAchievementIcon, getTierColorClass, getTierEmoji } from "@/lib/achievement-utils";
 import { setFeaturedBadge } from "@/app/actions/achievements";
 
 interface AchievementShowcaseProps {
@@ -20,8 +29,10 @@ export function AchievementShowcase({
 }: AchievementShowcaseProps) {
   const [featuredId, setFeaturedId] = useState(currentFeaturedId);
   const [loading, setLoading] = useState(false);
+  const [selectedDef, setSelectedDef] = useState<AchievementDefinition | null>(null);
 
   const unlockedIds = new Set(userAchievements.map((ua) => ua.achievement_id));
+  const unlockedMap = new Map(userAchievements.map((ua) => [ua.achievement_id, ua]));
 
   // Group definitions by achievement_group
   const groups = new Map<string, AchievementDefinition[]>();
@@ -78,14 +89,14 @@ export function AchievementShowcase({
                   const colorClass = getTierColorClass(def.tier);
 
                   return (
-                    <div
+                    <button
                       key={def.id}
-                      className={`relative flex flex-col items-center gap-1 p-3 rounded-lg border transition-colors ${
+                      onClick={() => setSelectedDef(def)}
+                      className={`relative flex flex-col items-center gap-1 p-3 rounded-lg border transition-colors cursor-pointer hover:ring-1 hover:ring-ring ${
                         isUnlocked
                           ? `${colorClass} border`
                           : "bg-muted/50 border-transparent opacity-40"
                       } ${isFeatured ? "ring-2 ring-primary" : ""}`}
-                      title={`${def.name} — ${def.description}`}
                     >
                       <Icon className="h-6 w-6" />
                       <span className="text-[10px] font-medium text-center leading-tight">
@@ -94,24 +105,12 @@ export function AchievementShowcase({
                       <span className="text-[9px] capitalize opacity-70">
                         {def.tier}
                       </span>
-                      {isUnlocked && (
-                        <button
-                          onClick={() => handleSetFeatured(def.id)}
-                          className={`absolute top-1 right-1 p-0.5 rounded-full transition-colors ${
-                            isFeatured
-                              ? "text-primary"
-                              : "text-muted-foreground/40 hover:text-muted-foreground"
-                          }`}
-                          title={isFeatured ? "Remove featured badge" : "Set as featured badge"}
-                          disabled={loading}
-                        >
-                          <Star
-                            className="h-3 w-3"
-                            fill={isFeatured ? "currentColor" : "none"}
-                          />
-                        </button>
+                      {isUnlocked && isFeatured && (
+                        <span className="absolute top-1 right-1 text-primary">
+                          <Star className="h-3 w-3" fill="currentColor" />
+                        </span>
                       )}
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -119,6 +118,79 @@ export function AchievementShowcase({
           ))}
         </div>
       </CardContent>
+
+      {/* Achievement detail modal */}
+      <Dialog open={!!selectedDef} onOpenChange={(open) => !open && setSelectedDef(null)}>
+        {selectedDef && (() => {
+          const isUnlocked = unlockedIds.has(selectedDef.id);
+          const isFeatured = featuredId === selectedDef.id;
+          const unlock = unlockedMap.get(selectedDef.id);
+          const SelectedIcon = getAchievementIcon(selectedDef.icon);
+          const selectedColorClass = getTierColorClass(selectedDef.tier);
+          const emoji = getTierEmoji(selectedDef.tier);
+
+          return (
+            <DialogContent>
+              <DialogHeader>
+                <div className="flex items-center gap-3">
+                  <span className={`inline-flex items-center justify-center h-12 w-12 rounded-full border-2 ${
+                    isUnlocked ? selectedColorClass : "bg-muted text-muted-foreground border-muted"
+                  }`}>
+                    <SelectedIcon className="h-6 w-6" />
+                  </span>
+                  <div>
+                    <DialogTitle className="flex items-center gap-2">
+                      {selectedDef.name}
+                      <span className="text-base">{emoji}</span>
+                    </DialogTitle>
+                    <p className="text-xs capitalize text-muted-foreground mt-0.5">
+                      {selectedDef.tier} &middot; {selectedDef.achievement_group.replace(/_/g, " ")}
+                    </p>
+                  </div>
+                </div>
+              </DialogHeader>
+              <DialogDescription className="text-sm">
+                {selectedDef.description}
+              </DialogDescription>
+              <div className="text-xs text-muted-foreground space-y-1">
+                <p>Threshold: {selectedDef.threshold}</p>
+                {isUnlocked && unlock ? (
+                  <p>
+                    Unlocked on{" "}
+                    {new Date(unlock.created_at).toLocaleDateString("en-US", {
+                      month: "long",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                    {unlock.granted_by ? " (manually granted)" : ""}
+                  </p>
+                ) : (
+                  <p className="flex items-center gap-1">
+                    <Lock className="h-3 w-3" />
+                    Not yet unlocked
+                  </p>
+                )}
+              </div>
+              {isUnlocked && (
+                <DialogFooter>
+                  <Button
+                    variant={isFeatured ? "outline" : "default"}
+                    size="sm"
+                    disabled={loading}
+                    onClick={async () => {
+                      await handleSetFeatured(selectedDef.id);
+                      setSelectedDef(null);
+                    }}
+                  >
+                    <Star className="h-4 w-4 mr-1" fill={isFeatured ? "currentColor" : "none"} />
+                    {isFeatured ? "Remove Featured" : "Set as Featured"}
+                  </Button>
+                </DialogFooter>
+              )}
+            </DialogContent>
+          );
+        })()}
+      </Dialog>
     </Card>
   );
 }
