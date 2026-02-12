@@ -7,7 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Send, Trash2, SmilePlus, ImagePlus, X } from "lucide-react";
 import { createComment, deleteComment } from "@/app/actions/comments";
 import { toggleReaction } from "@/app/actions/reactions";
-import { CommentWithUser, Profile, ReactionGroup } from "@/lib/types";
+import { CommentWithUser, Profile, ReactionGroup, FeaturedBadge } from "@/lib/types";
+import { AchievementBadge } from "@/components/achievement-badge";
 
 const EMOJI_PICKER = [
   "\u{1F44D}", "\u{2764}\u{FE0F}", "\u{1F602}", "\u{1F389}",
@@ -207,7 +208,7 @@ export function CommentThread({
             const author = comment.user as unknown as Pick<
               Profile,
               "id" | "display_name" | "avatar_url"
-            >;
+            > & { featured_badge: FeaturedBadge | null };
             const isOwn = comment.user_id === currentProfileId;
 
             return (
@@ -220,8 +221,9 @@ export function CommentThread({
                 </Avatar>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">
+                    <span className="text-sm font-medium inline-flex items-center gap-1">
                       {author.display_name}
+                      <AchievementBadge badge={author.featured_badge} />
                     </span>
                     <span className="text-xs text-muted-foreground">
                       {timeAgo(comment.created_at)}

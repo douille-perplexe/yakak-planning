@@ -7,6 +7,7 @@ import {
   getAllApprovedMemberIds,
   getPollVoterIds,
 } from "@/lib/notifications";
+import { checkAndGrantAchievements } from "@/lib/achievements";
 
 export async function createPoll(
   eventId: string,
@@ -122,6 +123,11 @@ export async function votePoll(
     });
     if (error) return { success: false, error: error.message };
   }
+
+  // Check achievements (fire-and-forget)
+  checkAndGrantAchievements(profile.id, ["poll_enthusiast"]).catch((err) =>
+    console.error("[achievements]", err)
+  );
 
   revalidatePath(`/events/${eventId}`);
   return { success: true };

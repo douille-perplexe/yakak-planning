@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { RsvpStatus } from "@/lib/types";
 import { createNotifications, getEventCreatorId } from "@/lib/notifications";
+import { checkAndGrantAchievements } from "@/lib/achievements";
 
 const VALID_STATUSES: RsvpStatus[] = ["yes", "no", "maybe"];
 
@@ -66,6 +67,15 @@ export async function upsertRsvp(eventId: string, status: RsvpStatus, guestCount
       excludeUserId: profile.id,
     });
   }).catch((err) => console.error("[notify]", err));
+
+  // Check achievements (fire-and-forget)
+  checkAndGrantAchievements(profile.id, [
+    "event_veteran",
+    "streak_master",
+    "weekend_warrior",
+    "social_butterfly",
+    "plus_one_pro",
+  ]).catch((err) => console.error("[achievements]", err));
 
   revalidatePath(`/events/${eventId}`);
   revalidatePath("/");

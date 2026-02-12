@@ -26,7 +26,7 @@ export default async function DashboardPage() {
   // Fetch upcoming events (next 5), pinned first
   const { data: rawEvents } = await supabase
     .from("events")
-    .select("*, creator:profiles!events_created_by_fkey(id, display_name, avatar_url)")
+    .select("*, creator:profiles!events_created_by_fkey(id, display_name, avatar_url, featured_badge:achievement_definitions(id, name, icon, tier))")
     .gte("date", new Date().toISOString())
     .order("date", { ascending: true })
     .limit(5);
@@ -42,7 +42,7 @@ export default async function DashboardPage() {
   const { data: rsvps } = eventIds.length
     ? await supabase
         .from("rsvps")
-        .select("*, user:profiles!rsvps_user_id_fkey(id, display_name, avatar_url)")
+        .select("*, user:profiles!rsvps_user_id_fkey(id, display_name, avatar_url, featured_badge:achievement_definitions(id, name, icon, tier))")
         .in("event_id", eventIds)
     : { data: [] };
 

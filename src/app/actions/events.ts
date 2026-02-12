@@ -8,6 +8,7 @@ import {
   getAllApprovedMemberIds,
   getEventRespondersIds,
 } from "@/lib/notifications";
+import { checkAndGrantAchievements } from "@/lib/achievements";
 
 interface CreateEventInput {
   title: string;
@@ -93,6 +94,11 @@ export async function createEvent(input: CreateEventInput) {
       }))
     );
   }
+
+  // Check achievements (fire-and-forget)
+  checkAndGrantAchievements(profile.id, ["organizer"]).catch((err) =>
+    console.error("[achievements]", err)
+  );
 
   // Notify all members about the new event
   getAllApprovedMemberIds().then((memberIds) =>

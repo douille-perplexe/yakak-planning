@@ -16,6 +16,7 @@ const TYPE_LABELS: Record<NotificationType, string> = {
   poll_closed: "Poll results",
   event_reminder: "Event reminders",
   availability_signal: "Availability signals",
+  achievement_unlocked: "Achievements",
 };
 
 const ORDERED_TYPES: NotificationType[] = [
@@ -28,6 +29,7 @@ const ORDERED_TYPES: NotificationType[] = [
   "poll_closed",
   "event_reminder",
   "availability_signal",
+  "achievement_unlocked",
 ];
 
 interface NotificationPreferencesProps {

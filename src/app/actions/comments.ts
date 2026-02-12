@@ -7,6 +7,7 @@ import {
   getEventCreatorId,
   getEventRespondersIds,
 } from "@/lib/notifications";
+import { checkAndGrantAchievements } from "@/lib/achievements";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
@@ -84,6 +85,11 @@ export async function createComment(
   if (error) {
     return { success: false, error: error.message };
   }
+
+  // Check achievements (fire-and-forget)
+  checkAndGrantAchievements(profile.id, ["commentator"]).catch((err) =>
+    console.error("[achievements]", err)
+  );
 
   // Notify event creator + yes/maybe responders about new comment
   Promise.all([

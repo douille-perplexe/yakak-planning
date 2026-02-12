@@ -122,6 +122,43 @@ export interface RsvpWithUser extends Rsvp {
   user: Pick<Profile, "id" | "display_name" | "avatar_url">;
 }
 
+export type AchievementTier = "bronze" | "silver" | "gold" | "platinum";
+export type AchievementCategory = "attendance" | "social" | "special";
+
+export interface AchievementDefinition {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  icon: string;
+  category: AchievementCategory;
+  tier: AchievementTier;
+  tier_position: number;
+  achievement_group: string;
+  threshold: number;
+  is_automatic: boolean;
+  created_at: string;
+}
+
+export interface UserAchievement {
+  id: string;
+  user_id: string;
+  achievement_id: string;
+  granted_by: string | null;
+  created_at: string;
+}
+
+export interface UserAchievementWithDefinition extends UserAchievement {
+  achievement: AchievementDefinition;
+}
+
+export interface FeaturedBadge {
+  id: string;
+  name: string;
+  icon: string;
+  tier: AchievementTier;
+}
+
 export type NotificationType =
   | "event_created"
   | "event_updated"
@@ -131,7 +168,8 @@ export type NotificationType =
   | "poll_created"
   | "poll_closed"
   | "event_reminder"
-  | "availability_signal";
+  | "availability_signal"
+  | "achievement_unlocked";
 
 export interface Notification {
   id: string;

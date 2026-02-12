@@ -13,6 +13,7 @@ import {
   CheckCircle,
   Clock,
   Activity,
+  Award,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -34,6 +35,7 @@ const TYPE_ICONS: Record<NotificationType, React.ElementType> = {
   poll_closed: CheckCircle,
   event_reminder: Clock,
   availability_signal: Activity,
+  achievement_unlocked: Award,
 };
 
 function timeAgo(dateStr: string): string {

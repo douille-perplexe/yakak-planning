@@ -18,11 +18,13 @@ import {
   CommentWithUser,
   PollWithDetails,
   ActivityCategory,
+  FeaturedBadge,
 } from "@/lib/types";
 import {
   getCategoryIcon,
   getCategoryColorClass,
 } from "@/lib/category-utils";
+import { AchievementBadge } from "@/components/achievement-badge";
 
 export default async function EventDetailPage({
   params,
@@ -46,7 +48,7 @@ export default async function EventDetailPage({
   const { data: event } = await supabase
     .from("events")
     .select(
-      "*, creator:profiles!events_created_by_fkey(id, display_name, avatar_url)"
+      "*, creator:profiles!events_created_by_fkey(id, display_name, avatar_url, featured_badge:achievement_definitions(id, name, icon, tier))"
     )
     .eq("id", id)
     .single();
@@ -100,21 +102,21 @@ export default async function EventDetailPage({
   const { data: rsvps } = await supabase
     .from("rsvps")
     .select(
-      "*, user:profiles!rsvps_user_id_fkey(id, display_name, avatar_url)"
+      "*, user:profiles!rsvps_user_id_fkey(id, display_name, avatar_url, featured_badge:achievement_definitions(id, name, icon, tier))"
     )
     .eq("event_id", id);
 
   // Fetch all approved members for "No response" section
   const { data: allMembers } = await supabase
     .from("profiles")
-    .select("id, display_name, avatar_url")
+    .select("id, display_name, avatar_url, featured_badge:achievement_definitions(id, name, icon, tier)")
     .eq("status", "approved");
 
   // Fetch comments with user profiles
   const { data: comments } = await supabase
     .from("comments")
     .select(
-      "*, user:profiles!comments_user_id_fkey(id, display_name, avatar_url)"
+      "*, user:profiles!comments_user_id_fkey(id, display_name, avatar_url, featured_badge:achievement_definitions(id, name, icon, tier))"
     )
     .eq("event_id", id)
     .order("created_at", { ascending: true });
@@ -240,7 +242,7 @@ export default async function EventDetailPage({
   const creator = event.creator as unknown as Pick<
     Profile,
     "id" | "display_name" | "avatar_url"
-  >;
+  > & { featured_badge: FeaturedBadge | null };
 
   return (
     <div className="space-y-6">
@@ -342,8 +344,9 @@ export default async function EventDetailPage({
                 {creator.display_name.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            <span className="text-sm text-muted-foreground">
+            <span className="text-sm text-muted-foreground inline-flex items-center gap-1">
               Created by {creator.display_name}
+              <AchievementBadge badge={creator.featured_badge} />
             </span>
           </div>
         </CardContent>
@@ -380,7 +383,7 @@ export default async function EventDetailPage({
                   const rsvpUser = rsvp.user as unknown as Pick<
                     Profile,
                     "id" | "display_name" | "avatar_url"
-                  >;
+                  > & { featured_badge: FeaturedBadge | null };
                   return (
                     <div
                       key={rsvp.id}
@@ -392,8 +395,9 @@ export default async function EventDetailPage({
                           {rsvpUser.display_name.charAt(0)}
                         </AvatarFallback>
                       </Avatar>
-                      <span className="text-sm">
+                      <span className="text-sm inline-flex items-center gap-1">
                         {rsvpUser.display_name}
+                        <AchievementBadge badge={rsvpUser.featured_badge} />
                         {rsvp.guest_count > 0 && (
                           <span className="text-muted-foreground ml-1">
                             +{rsvp.guest_count} guest{rsvp.guest_count !== 1 ? "s" : ""}
@@ -417,7 +421,7 @@ export default async function EventDetailPage({
                   const rsvpUser = rsvp.user as unknown as Pick<
                     Profile,
                     "id" | "display_name" | "avatar_url"
-                  >;
+                  > & { featured_badge: FeaturedBadge | null };
                   return (
                     <div
                       key={rsvp.id}
@@ -429,8 +433,9 @@ export default async function EventDetailPage({
                           {rsvpUser.display_name.charAt(0)}
                         </AvatarFallback>
                       </Avatar>
-                      <span className="text-sm">
+                      <span className="text-sm inline-flex items-center gap-1">
                         {rsvpUser.display_name}
+                        <AchievementBadge badge={rsvpUser.featured_badge} />
                         {rsvp.guest_count > 0 && (
                           <span className="text-muted-foreground ml-1">
                             +{rsvp.guest_count} guest{rsvp.guest_count !== 1 ? "s" : ""}
@@ -454,7 +459,7 @@ export default async function EventDetailPage({
                   const rsvpUser = rsvp.user as unknown as Pick<
                     Profile,
                     "id" | "display_name" | "avatar_url"
-                  >;
+                  > & { featured_badge: FeaturedBadge | null };
                   return (
                     <div
                       key={rsvp.id}
@@ -466,7 +471,10 @@ export default async function EventDetailPage({
                           {rsvpUser.display_name.charAt(0)}
                         </AvatarFallback>
                       </Avatar>
-                      <span className="text-sm">{rsvpUser.display_name}</span>
+                      <span className="text-sm inline-flex items-center gap-1">
+                        {rsvpUser.display_name}
+                        <AchievementBadge badge={rsvpUser.featured_badge} />
+                      </span>
                     </div>
                   );
                 })}
@@ -480,20 +488,26 @@ export default async function EventDetailPage({
                 No response ({noResponse.length})
               </p>
               <div className="flex flex-wrap gap-2">
-                {noResponse.map((member) => (
-                  <div
-                    key={member.id}
-                    className="flex items-center gap-2 bg-muted rounded-full px-3 py-1 opacity-40"
-                  >
-                    <Avatar className="h-5 w-5">
-                      <AvatarImage src={member.avatar_url} />
-                      <AvatarFallback className="text-[10px]">
-                        {member.display_name.charAt(0)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="text-sm">{member.display_name}</span>
-                  </div>
-                ))}
+                {noResponse.map((member) => {
+                  const m = member as typeof member & { featured_badge: FeaturedBadge | null };
+                  return (
+                    <div
+                      key={m.id}
+                      className="flex items-center gap-2 bg-muted rounded-full px-3 py-1 opacity-40"
+                    >
+                      <Avatar className="h-5 w-5">
+                        <AvatarImage src={m.avatar_url} />
+                        <AvatarFallback className="text-[10px]">
+                          {m.display_name.charAt(0)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm inline-flex items-center gap-1">
+                        {m.display_name}
+                        <AchievementBadge badge={m.featured_badge} />
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}

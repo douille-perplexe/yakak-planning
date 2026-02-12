@@ -3,11 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Profile, NotificationPreference, ActivityCategory, TwitchChannel } from "@/lib/types";
+import { Profile, NotificationPreference, ActivityCategory, TwitchChannel, AchievementDefinition, UserAchievementWithDefinition } from "@/lib/types";
 import { AdminPanel } from "@/components/admin-panel";
 import { NotificationPreferences } from "@/components/notification-preferences";
 import { CategoryManager } from "@/components/category-manager";
 import { TwitchChannelManager } from "@/components/twitch-channel-manager";
+import { AchievementShowcase } from "@/components/achievement-showcase";
+import { AdminAchievementGrant } from "@/components/admin-achievement-grant";
 
 export default async function SettingsPage() {
   const supabase = await createClient();
@@ -26,6 +28,18 @@ export default async function SettingsPage() {
     .from("notification_preferences")
     .select("*")
     .order("type");
+
+  // Fetch achievement data
+  const { data: achievementDefs } = await supabase
+    .from("achievement_definitions")
+    .select("*")
+    .order("achievement_group")
+    .order("tier_position");
+
+  const { data: userAchievements } = await supabase
+    .from("user_achievements")
+    .select("*, achievement:achievement_definitions(*)")
+    .eq("user_id", profile!.id);
 
   const isAdmin = profile?.role === "admin";
 
@@ -91,6 +105,13 @@ export default async function SettingsPage() {
         </CardContent>
       </Card>
 
+      {/* Achievements */}
+      <AchievementShowcase
+        allDefinitions={(achievementDefs ?? []) as AchievementDefinition[]}
+        userAchievements={(userAchievements ?? []) as UserAchievementWithDefinition[]}
+        currentFeaturedId={profile?.featured_badge_id ?? null}
+      />
+
       {/* Notification preferences */}
       <NotificationPreferences
         preferences={(notifPrefs ?? []) as NotificationPreference[]}
@@ -101,6 +122,14 @@ export default async function SettingsPage() {
 
       {/* Twitch channel management (admin) */}
       {isAdmin && <TwitchChannelManager channels={twitchChannels} />}
+
+      {/* Achievement grant (admin) */}
+      {isAdmin && (
+        <AdminAchievementGrant
+          members={approvedMembers.map((m) => ({ id: m.id, display_name: m.display_name }))}
+          definitions={(achievementDefs ?? []) as AchievementDefinition[]}
+        />
+      )}
 
       {/* Admin section */}
       {isAdmin && (
