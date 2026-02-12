@@ -57,9 +57,11 @@ export default async function DashboardPage() {
 
   const getRsvpSummary = (eventId: string) => {
     const eventRsvps = (rsvps ?? []).filter((r) => r.event_id === eventId);
-    const yes = eventRsvps.filter((r) => r.status === "yes").length;
+    const yesRsvps = eventRsvps.filter((r) => r.status === "yes");
+    const yes = yesRsvps.length;
     const maybe = eventRsvps.filter((r) => r.status === "maybe").length;
-    return { yes, maybe };
+    const guestTotal = yesRsvps.reduce((sum, r) => sum + (r.guest_count ?? 0), 0);
+    return { yes, maybe, guestTotal };
   };
 
   const getUserRsvp = (eventId: string): RsvpStatus | null => {
@@ -170,7 +172,7 @@ export default async function DashboardPage() {
         ) : (
           <div className="space-y-3">
             {events.map((event) => {
-              const { yes, maybe } = getRsvpSummary(event.id);
+              const { yes, maybe, guestTotal } = getRsvpSummary(event.id);
               const userRsvp = getUserRsvp(event.id);
               return (
                 <Link key={event.id} href={`/events/${event.id}`}>
@@ -199,7 +201,7 @@ export default async function DashboardPage() {
                             </a>
                           </div>
                           <p className="text-sm text-muted-foreground">
-                            {yes} going &middot; {maybe} maybe
+                            {yes} going{guestTotal > 0 && ` (+${guestTotal} guest${guestTotal !== 1 ? "s" : ""})`} &middot; {maybe} maybe
                           </p>
                         </div>
                         {userRsvp && (

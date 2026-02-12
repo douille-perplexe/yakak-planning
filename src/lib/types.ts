@@ -48,6 +48,7 @@ export interface Rsvp {
   event_id: string;
   user_id: string;
   status: RsvpStatus;
+  guest_count: number;
   created_at: string;
   updated_at: string;
 }

@@ -189,9 +189,13 @@ export default async function EventDetailPage({
   const respondedIds = new Set(rsvpList.map((r) => r.user_id));
   const noResponse = members.filter((m) => !respondedIds.has(m.id));
 
-  const userRsvp = rsvpList.find(
+  const currentUserRsvp = rsvpList.find(
     (r) => r.user_id === currentProfile?.id
-  )?.status as RsvpStatus | undefined;
+  );
+  const userRsvp = currentUserRsvp?.status as RsvpStatus | undefined;
+  const userGuestCount = currentUserRsvp?.guest_count ?? 0;
+
+  const yesGuestTotal = yesRsvps.reduce((sum, r) => sum + (r.guest_count ?? 0), 0);
 
   const isCreator = event.created_by === currentProfile?.id;
   const isAdmin = currentProfile?.role === "admin";
@@ -341,7 +345,9 @@ export default async function EventDetailPage({
           <CardTitle className="flex items-center gap-3">
             RSVP
             <div className="flex gap-2">
-              <Badge variant="default">{yesRsvps.length} going</Badge>
+              <Badge variant="default">
+                {yesRsvps.length} going{yesGuestTotal > 0 && ` (+${yesGuestTotal} guest${yesGuestTotal !== 1 ? "s" : ""})`}
+              </Badge>
               <Badge variant="secondary">{maybeRsvps.length} maybe</Badge>
             </div>
           </CardTitle>
@@ -350,6 +356,7 @@ export default async function EventDetailPage({
           <RsvpButtons
             eventId={event.id}
             currentStatus={userRsvp ?? null}
+            currentGuestCount={userGuestCount}
           />
 
           {/* RSVP lists */}
@@ -375,7 +382,14 @@ export default async function EventDetailPage({
                           {rsvpUser.display_name.charAt(0)}
                         </AvatarFallback>
                       </Avatar>
-                      <span className="text-sm">{rsvpUser.display_name}</span>
+                      <span className="text-sm">
+                        {rsvpUser.display_name}
+                        {rsvp.guest_count > 0 && (
+                          <span className="text-muted-foreground ml-1">
+                            +{rsvp.guest_count} guest{rsvp.guest_count !== 1 ? "s" : ""}
+                          </span>
+                        )}
+                      </span>
                     </div>
                   );
                 })}
@@ -405,7 +419,14 @@ export default async function EventDetailPage({
                           {rsvpUser.display_name.charAt(0)}
                         </AvatarFallback>
                       </Avatar>
-                      <span className="text-sm">{rsvpUser.display_name}</span>
+                      <span className="text-sm">
+                        {rsvpUser.display_name}
+                        {rsvp.guest_count > 0 && (
+                          <span className="text-muted-foreground ml-1">
+                            +{rsvp.guest_count} guest{rsvp.guest_count !== 1 ? "s" : ""}
+                          </span>
+                        )}
+                      </span>
                     </div>
                   );
                 })}
