@@ -8,7 +8,7 @@ import { Fab } from "@/components/fab";
 import { MapLink } from "@/components/map-link";
 import { RsvpStatus, TwitchChannel } from "@/lib/types";
 import { TwitchLiveCard } from "@/components/twitch-live-card";
-import { fetchLiveStatuses } from "@/lib/twitch";
+import { fetchLiveStatuses, syncTwitchChannels } from "@/lib/twitch";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -72,6 +72,13 @@ export default async function DashboardPage() {
 
   const channelNames = (twitchChannels ?? []).map((c: { channel_name: string }) => c.channel_name);
   const liveStatuses = await fetchLiveStatuses(channelNames);
+
+  // Sync Twitch state to DB + send notifications (fire-and-forget, replaces cron)
+  if ((twitchChannels ?? []).length > 0) {
+    syncTwitchChannels(twitchChannels as TwitchChannel[], liveStatuses).catch(
+      (err) => console.error("[twitch-sync]", err)
+    );
+  }
 
   // Merge live data from Twitch API into channel objects
   const enrichedChannels: TwitchChannel[] = (twitchChannels ?? []).map((ch: TwitchChannel) => {

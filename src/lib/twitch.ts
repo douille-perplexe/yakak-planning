@@ -172,3 +172,117 @@ export async function pollTwitchChannels() {
 
   return { channels, streams: streamMap };
 }
+
+/**
+ * Sync Twitch channel state: persist live status to DB, send notifications
+ * for new streams, auto-create events. Designed to run on page load as a
+ * fire-and-forget side effect (replaces the cron job).
+ */
+export async function syncTwitchChannels(
+  dbChannels: { id: string; channel_name: string; display_name: string | null; current_stream_id: string | null; is_live: boolean; auto_create_events: boolean; added_by: string }[],
+  liveStreams: Map<string, TwitchStream>
+) {
+  const { createNotifications, getAllApprovedMemberIds } = await import("@/lib/notifications");
+  const supabase = await createServiceClient();
+
+  for (const channel of dbChannels) {
+    const stream = liveStreams.get(channel.channel_name.toLowerCase());
+    const now = new Date().toISOString();
+
+    if (stream) {
+      const isNewStream = channel.current_stream_id !== stream.id;
+      const displayName = channel.display_name || channel.channel_name;
+
+      // Update channel with live data
+      await supabase
+        .from("twitch_channels")
+        .update({
+          is_live: true,
+          current_stream_id: stream.id,
+          current_title: stream.title,
+          current_category: stream.game_name,
+          current_viewer_count: stream.viewer_count,
+          current_thumbnail_url: stream.thumbnail_url,
+          stream_started_at: stream.started_at,
+          last_checked_at: now,
+        })
+        .eq("id", channel.id);
+
+      // Notify all members when a channel goes live
+      if (isNewStream) {
+        const category = stream.game_name ? ` — ${stream.game_name}` : "";
+        getAllApprovedMemberIds()
+          .then((memberIds) =>
+            createNotifications({
+              type: "twitch_live",
+              referenceId: channel.id,
+              message: `${displayName} is now live on Twitch!${category}`,
+              recipientIds: memberIds,
+            })
+          )
+          .catch(() => {});
+      }
+
+      // Auto-create event for new streams
+      if (isNewStream && channel.auto_create_events) {
+        const { count } = await supabase
+          .from("events")
+          .select("*", { count: "exact", head: true })
+          .eq("twitch_stream_id", stream.id);
+
+        if ((count ?? 0) === 0) {
+          const title = `${displayName} is live: ${stream.title}`.slice(0, 100);
+
+          const { data: event } = await supabase
+            .from("events")
+            .insert({
+              title,
+              date: stream.started_at,
+              location: `https://twitch.tv/${channel.channel_name}`,
+              description: stream.game_name
+                ? `Streaming ${stream.game_name}`
+                : null,
+              twitch_stream_id: stream.id,
+              created_by: channel.added_by,
+            })
+            .select("id")
+            .single();
+
+          if (event) {
+            getAllApprovedMemberIds()
+              .then((memberIds) =>
+                createNotifications({
+                  type: "event_created",
+                  referenceId: event.id,
+                  message: `${displayName} is now live on Twitch!`,
+                  recipientIds: memberIds,
+                  excludeUserId: channel.added_by,
+                })
+              )
+              .catch(() => {});
+          }
+        }
+      }
+    } else if (channel.is_live) {
+      // Channel went offline
+      await supabase
+        .from("twitch_channels")
+        .update({
+          is_live: false,
+          current_stream_id: null,
+          current_title: null,
+          current_category: null,
+          current_viewer_count: 0,
+          current_thumbnail_url: null,
+          stream_started_at: null,
+          last_checked_at: now,
+        })
+        .eq("id", channel.id);
+    } else {
+      await supabase
+        .from("twitch_channels")
+        .update({ last_checked_at: now })
+        .eq("id", channel.id);
+    }
+  }
+}
