@@ -2,10 +2,11 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CalendarDays, MapPin, Plus, Users, ExternalLink, Pin } from "lucide-react";
+import { CalendarDays, Plus, Users, Pin } from "lucide-react";
 import Link from "next/link";
 import { RsvpStatus } from "@/lib/types";
 import { Fab } from "@/components/fab";
+import { MapLink } from "@/components/map-link";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -25,10 +26,14 @@ export default async function DashboardPage() {
     .from("events")
     .select("*, creator:profiles!events_created_by_fkey(id, display_name, avatar_url)")
     .gte("date", new Date().toISOString())
-    .order("is_pinned", { ascending: false })
     .order("date", { ascending: true })
     .limit(5);
-  const events = rawEvents;
+  // Sort pinned events to the top (client-side so it works before migration runs)
+  const events = (rawEvents ?? []).sort((a, b) => {
+    if (a.is_pinned && !b.is_pinned) return -1;
+    if (!a.is_pinned && b.is_pinned) return 1;
+    return 0;
+  });
 
   // Fetch RSVPs for these events
   const eventIds = (events ?? []).map((e) => e.id);
@@ -192,17 +197,7 @@ export default async function DashboardPage() {
                               <CalendarDays className="h-3.5 w-3.5" />
                               {formatDate(event.date)}
                             </span>
-                            <a
-                              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              className="flex items-center gap-1 underline hover:text-foreground transition-colors"
-                            >
-                              <MapPin className="h-3.5 w-3.5" />
-                              {event.location}
-                              <ExternalLink className="h-3 w-3" />
-                            </a>
+                            <MapLink location={event.location} />
                           </div>
                           <p className="text-sm text-muted-foreground">
                             {yes} going{guestTotal > 0 && ` (+${guestTotal} guest${guestTotal !== 1 ? "s" : ""})`} &middot; {maybe} maybe
