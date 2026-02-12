@@ -39,6 +39,7 @@ export async function GET(request: Request) {
 
     if (stream) {
       const isNewStream = channel.current_stream_id !== stream.id;
+      const displayName = channel.display_name || channel.channel_name;
 
       // Update channel with live data
       await supabase
@@ -55,6 +56,21 @@ export async function GET(request: Request) {
         })
         .eq("id", channel.id);
 
+      // Notify all members when a channel goes live
+      if (isNewStream) {
+        const category = stream.game_name ? ` — ${stream.game_name}` : "";
+        getAllApprovedMemberIds()
+          .then((memberIds) =>
+            createNotifications({
+              type: "twitch_live",
+              referenceId: channel.id,
+              message: `${displayName} is now live on Twitch!${category}`,
+              recipientIds: memberIds,
+            })
+          )
+          .catch(() => {});
+      }
+
       // Auto-create event for new streams
       if (isNewStream && channel.auto_create_events) {
         // Dedup: check if event already exists for this stream
@@ -64,7 +80,6 @@ export async function GET(request: Request) {
           .eq("twitch_stream_id", stream.id);
 
         if ((count ?? 0) === 0) {
-          const displayName = channel.display_name || channel.channel_name;
           const title = `${displayName} is live: ${stream.title}`.slice(0, 100);
 
           const { data: event } = await supabase

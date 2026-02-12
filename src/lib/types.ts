@@ -169,7 +169,8 @@ export type NotificationType =
   | "poll_closed"
   | "event_reminder"
   | "availability_signal"
-  | "achievement_unlocked";
+  | "achievement_unlocked"
+  | "twitch_live";
 
 export interface Notification {
   id: string;

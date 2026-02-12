@@ -17,6 +17,7 @@ const TYPE_LABELS: Record<NotificationType, string> = {
   event_reminder: "Event reminders",
   availability_signal: "Availability signals",
   achievement_unlocked: "Achievements",
+  twitch_live: "Twitch live",
 };
 
 const ORDERED_TYPES: NotificationType[] = [
@@ -30,6 +31,7 @@ const ORDERED_TYPES: NotificationType[] = [
   "event_reminder",
   "availability_signal",
   "achievement_unlocked",
+  "twitch_live",
 ];
 
 interface NotificationPreferencesProps {
