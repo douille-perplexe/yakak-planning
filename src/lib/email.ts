@@ -22,10 +22,16 @@ export async function sendNotificationEmail({
   eventId,
 }: SendNotificationEmailParams) {
   const client = getResend();
-  if (!client) return; // No API key configured — skip silently
+  if (!client) {
+    console.warn("[email] Skipping — RESEND_API_KEY not configured");
+    return;
+  }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
   const eventLink = eventId ? `${appUrl}/events/${eventId}` : appUrl;
+  const settingsLink = `${appUrl}/settings`;
+
+  const fromEmail = process.env.RESEND_FROM_EMAIL || "Yakak <onboarding@resend.dev>";
 
   const html = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
@@ -46,17 +52,20 @@ export async function sendNotificationEmail({
         </a>
       </div>
       <p style="margin-top: 24px; font-size: 12px; color: #9ca3af; text-align: center;">
-        You can manage your notification preferences in Yakak settings.
+        You can <a href="${settingsLink}" style="color: #6366f1; text-decoration: none;">manage your notification preferences</a> in Yakak settings.
       </p>
     </div>
   `;
 
-  const fromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
-
-  await client.emails.send({
+  const { error } = await client.emails.send({
     from: fromEmail,
     to,
     subject: `Yakak: ${subject}`,
     html,
   });
+
+  if (error) {
+    console.error(`[email] Resend API error sending to ${to}:`, error);
+    throw new Error(error.message);
+  }
 }

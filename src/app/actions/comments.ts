@@ -101,7 +101,7 @@ export async function createComment(
       recipientIds,
       excludeUserId: profile.id,
     });
-  }).catch(() => {});
+  }).catch((err) => console.error("[notify]", err));
 
   revalidatePath(`/events/${eventId}`);
   return { success: true };

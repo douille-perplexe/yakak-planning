@@ -33,21 +33,20 @@ export async function createNotifications({
     .eq("type", type)
     .in("user_id", filteredIds);
 
-  // Build preference maps
-  const inAppDisabledSet = new Set(
-    (prefs ?? [])
-      .filter((p: { user_id: string; in_app_enabled: boolean }) => !p.in_app_enabled)
-      .map((p: { user_id: string }) => p.user_id)
+  // Build preference maps — users without a preference row default to enabled
+  const prefsMap = new Map(
+    (prefs ?? []).map((p: { user_id: string; in_app_enabled: boolean; email_enabled: boolean }) => [
+      p.user_id,
+      p,
+    ])
   );
 
-  const emailEnabledSet = new Set(
-    (prefs ?? [])
-      .filter((p: { user_id: string; email_enabled: boolean }) => p.email_enabled)
-      .map((p: { user_id: string }) => p.user_id)
-  );
+  // In-app notifications: send unless explicitly disabled
+  const inAppEligibleIds = filteredIds.filter((id) => {
+    const pref = prefsMap.get(id);
+    return !pref || pref.in_app_enabled;
+  });
 
-  // In-app notifications
-  const inAppEligibleIds = filteredIds.filter((id) => !inAppDisabledSet.has(id));
   if (inAppEligibleIds.length > 0) {
     const rows = inAppEligibleIds.map((userId) => ({
       user_id: userId,
@@ -59,13 +58,16 @@ export async function createNotifications({
     await supabase.from("notifications").insert(rows);
   }
 
-  // Email notifications
-  const emailEligibleIds = filteredIds.filter((id) => emailEnabledSet.has(id));
+  // Email notifications: send unless explicitly disabled
+  const emailEligibleIds = filteredIds.filter((id) => {
+    const pref = prefsMap.get(id);
+    return !pref || pref.email_enabled;
+  });
+
   if (emailEligibleIds.length > 0) {
-    // Fetch email addresses for eligible recipients
     const { data: profiles } = await supabase
       .from("profiles")
-      .select("id, email")
+      .select("id, email, display_name")
       .in("id", emailEligibleIds);
 
     for (const profile of profiles ?? []) {
@@ -75,7 +77,12 @@ export async function createNotifications({
           subject: message,
           message,
           eventId: referenceId,
-        }).catch(() => {});
+        }).catch((err) => {
+          console.error(
+            `[email] Failed to send to ${profile.email}:`,
+            err instanceof Error ? err.message : err
+          );
+        });
       }
     }
   }

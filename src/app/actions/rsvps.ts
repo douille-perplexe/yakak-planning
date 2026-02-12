@@ -7,10 +7,12 @@ import { createNotifications, getEventCreatorId } from "@/lib/notifications";
 
 const VALID_STATUSES: RsvpStatus[] = ["yes", "no", "maybe"];
 
-export async function upsertRsvp(eventId: string, status: RsvpStatus) {
+export async function upsertRsvp(eventId: string, status: RsvpStatus, guestCount: number = 0) {
   if (!VALID_STATUSES.includes(status)) {
     return { success: false, error: "Invalid RSVP status" };
   }
+
+  const effectiveGuestCount = status === "no" ? 0 : Math.max(0, Math.min(10, Math.floor(guestCount)));
 
   const supabase = await createClient();
 
@@ -38,7 +40,7 @@ export async function upsertRsvp(eventId: string, status: RsvpStatus) {
   if (existing) {
     const { error } = await supabase
       .from("rsvps")
-      .update({ status })
+      .update({ status, guest_count: effectiveGuestCount })
       .eq("id", existing.id);
 
     if (error) return { success: false, error: error.message };
@@ -47,6 +49,7 @@ export async function upsertRsvp(eventId: string, status: RsvpStatus) {
       event_id: eventId,
       user_id: profile.id,
       status,
+      guest_count: effectiveGuestCount,
     });
 
     if (error) return { success: false, error: error.message };
@@ -62,7 +65,7 @@ export async function upsertRsvp(eventId: string, status: RsvpStatus) {
       recipientIds: [creatorId],
       excludeUserId: profile.id,
     });
-  }).catch(() => {});
+  }).catch((err) => console.error("[notify]", err));
 
   revalidatePath(`/events/${eventId}`);
   revalidatePath("/");

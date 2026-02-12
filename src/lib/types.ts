@@ -22,6 +22,7 @@ export interface Event {
   estimated_cost: number | null;
   reminder_hours: number;
   twitch_stream_id: string | null;
+  is_pinned: boolean;
   created_by: string;
   deleted_at: string | null;
   created_at: string;
@@ -49,6 +50,7 @@ export interface Rsvp {
   event_id: string;
   user_id: string;
   status: RsvpStatus;
+  guest_count: number;
   created_at: string;
   updated_at: string;
 }

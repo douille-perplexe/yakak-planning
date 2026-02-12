@@ -3,11 +3,12 @@ import { notFound } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { CalendarDays, MapPin, Clock, ArrowLeft, Euro } from "lucide-react";
+import { CalendarDays, MapPin, Clock, ArrowLeft, Euro, ExternalLink, Pin } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { RsvpButtons } from "@/components/rsvp-buttons";
 import { EventActions } from "@/components/event-actions";
+import { PinToggleButton } from "@/components/pin-toggle-button";
 import { CommentThread } from "@/components/comment-thread";
 import { PollCard } from "@/components/poll-card";
 import { CreatePollForm } from "@/components/create-poll-form";
@@ -189,9 +190,13 @@ export default async function EventDetailPage({
   const respondedIds = new Set(rsvpList.map((r) => r.user_id));
   const noResponse = members.filter((m) => !respondedIds.has(m.id));
 
-  const userRsvp = rsvpList.find(
+  const currentUserRsvp = rsvpList.find(
     (r) => r.user_id === currentProfile?.id
-  )?.status as RsvpStatus | undefined;
+  );
+  const userRsvp = currentUserRsvp?.status as RsvpStatus | undefined;
+  const userGuestCount = currentUserRsvp?.guest_count ?? 0;
+
+  const yesGuestTotal = yesRsvps.reduce((sum, r) => sum + (r.guest_count ?? 0), 0);
 
   const isCreator = event.created_by === currentProfile?.id;
   const isAdmin = currentProfile?.role === "admin";
@@ -246,22 +251,31 @@ export default async function EventDetailPage({
             Back
           </Button>
         </Link>
-        {(isCreator || isAdmin) && (
-          <EventActions
-            eventId={event.id}
-            event={event}
-            isCreator={isCreator}
-            isAdmin={isAdmin}
-            categories={(allCategories ?? []) as ActivityCategory[]}
-            eventCategoryIds={eventCategoryIds}
-          />
-        )}
+        <div className="flex items-center gap-2">
+          {isAdmin && (
+            <PinToggleButton eventId={event.id} isPinned={event.is_pinned} />
+          )}
+          {(isCreator || isAdmin) && (
+            <EventActions
+              eventId={event.id}
+              event={event}
+              isCreator={isCreator}
+              isAdmin={isAdmin}
+              categories={(allCategories ?? []) as ActivityCategory[]}
+              eventCategoryIds={eventCategoryIds}
+            />
+          )}
+        </div>
       </div>
 
       {/* Event details */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl">{event.title}</CardTitle>
+          <CardTitle className="text-2xl flex items-center gap-2">
+            {event.is_pinned && <Pin className="h-5 w-5 text-primary" />}
+            {event.title}
+            {event.is_pinned && <Badge variant="outline" className="text-xs border-primary/50 text-primary">Pinned</Badge>}
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col gap-3">
@@ -273,7 +287,15 @@ export default async function EventDetailPage({
             </div>
             <div className="flex items-center gap-2 text-muted-foreground">
               <MapPin className="h-4 w-4" />
-              <span>{event.location}</span>
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:text-foreground transition-colors inline-flex items-center gap-1"
+              >
+                {event.location}
+                <ExternalLink className="h-3 w-3" />
+              </a>
             </div>
             <div className="flex items-center gap-2 text-muted-foreground">
               <Clock className="h-4 w-4" />
@@ -333,7 +355,9 @@ export default async function EventDetailPage({
           <CardTitle className="flex items-center gap-3">
             RSVP
             <div className="flex gap-2">
-              <Badge variant="default">{yesRsvps.length} going</Badge>
+              <Badge variant="default">
+                {yesRsvps.length} going{yesGuestTotal > 0 && ` (+${yesGuestTotal} guest${yesGuestTotal !== 1 ? "s" : ""})`}
+              </Badge>
               <Badge variant="secondary">{maybeRsvps.length} maybe</Badge>
             </div>
           </CardTitle>
@@ -342,6 +366,7 @@ export default async function EventDetailPage({
           <RsvpButtons
             eventId={event.id}
             currentStatus={userRsvp ?? null}
+            currentGuestCount={userGuestCount}
           />
 
           {/* RSVP lists */}
@@ -367,7 +392,14 @@ export default async function EventDetailPage({
                           {rsvpUser.display_name.charAt(0)}
                         </AvatarFallback>
                       </Avatar>
-                      <span className="text-sm">{rsvpUser.display_name}</span>
+                      <span className="text-sm">
+                        {rsvpUser.display_name}
+                        {rsvp.guest_count > 0 && (
+                          <span className="text-muted-foreground ml-1">
+                            +{rsvp.guest_count} guest{rsvp.guest_count !== 1 ? "s" : ""}
+                          </span>
+                        )}
+                      </span>
                     </div>
                   );
                 })}
@@ -397,7 +429,14 @@ export default async function EventDetailPage({
                           {rsvpUser.display_name.charAt(0)}
                         </AvatarFallback>
                       </Avatar>
-                      <span className="text-sm">{rsvpUser.display_name}</span>
+                      <span className="text-sm">
+                        {rsvpUser.display_name}
+                        {rsvp.guest_count > 0 && (
+                          <span className="text-muted-foreground ml-1">
+                            +{rsvp.guest_count} guest{rsvp.guest_count !== 1 ? "s" : ""}
+                          </span>
+                        )}
+                      </span>
                     </div>
                   );
                 })}
