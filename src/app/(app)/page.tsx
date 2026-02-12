@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CalendarDays, MapPin, Plus, Users } from "lucide-react";
+import { CalendarDays, MapPin, Plus, Users, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { RsvpStatus } from "@/lib/types";
 import { Fab } from "@/components/fab";
@@ -186,10 +186,17 @@ export default async function DashboardPage() {
                               <CalendarDays className="h-3.5 w-3.5" />
                               {formatDate(event.date)}
                             </span>
-                            <span className="flex items-center gap-1">
+                            <a
+                              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="flex items-center gap-1 underline hover:text-foreground transition-colors"
+                            >
                               <MapPin className="h-3.5 w-3.5" />
                               {event.location}
-                            </span>
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
                           </div>
                           <p className="text-sm text-muted-foreground">
                             {yes} going &middot; {maybe} maybe

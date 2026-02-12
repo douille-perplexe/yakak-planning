@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { CalendarDays, MapPin, Clock, ArrowLeft, Euro } from "lucide-react";
+import { CalendarDays, MapPin, Clock, ArrowLeft, Euro, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { RsvpButtons } from "@/components/rsvp-buttons";
@@ -273,7 +273,15 @@ export default async function EventDetailPage({
             </div>
             <div className="flex items-center gap-2 text-muted-foreground">
               <MapPin className="h-4 w-4" />
-              <span>{event.location}</span>
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:text-foreground transition-colors inline-flex items-center gap-1"
+              >
+                {event.location}
+                <ExternalLink className="h-3 w-3" />
+              </a>
             </div>
             <div className="flex items-center gap-2 text-muted-foreground">
               <Clock className="h-4 w-4" />
