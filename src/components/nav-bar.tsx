@@ -14,6 +14,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { Profile, Notification } from "@/lib/types";
 import { NotificationBell } from "@/components/notification-bell";
+import { ThemeToggle } from "@/components/theme-toggle";
 import Image from "next/image";
 import logoIcon from "@/app/icon.png";
 
@@ -78,8 +79,8 @@ export function NavBar({ profile, notifications, unreadCount }: NavBarProps) {
             })}
           </nav>
 
-          {/* Notifications */}
-          <div className="border-t border-border px-3 py-3">
+          {/* Notifications & Theme */}
+          <div className="border-t border-border px-3 py-3 space-y-1">
             <div className="flex items-center gap-3 px-3">
               <NotificationBell
                 initialNotifications={notifications}
@@ -87,6 +88,12 @@ export function NavBar({ profile, notifications, unreadCount }: NavBarProps) {
               />
               <span className="text-sm font-medium text-muted-foreground">
                 Notifications
+              </span>
+            </div>
+            <div className="flex items-center gap-3 px-3">
+              <ThemeToggle />
+              <span className="text-sm font-medium text-muted-foreground">
+                Theme
               </span>
             </div>
           </div>
@@ -128,6 +135,7 @@ export function NavBar({ profile, notifications, unreadCount }: NavBarProps) {
             <span className="text-lg font-bold text-foreground">Yakak</span>
           </div>
           <div className="flex items-center gap-2">
+            <ThemeToggle />
             <NotificationBell
               initialNotifications={notifications}
               initialUnreadCount={unreadCount}

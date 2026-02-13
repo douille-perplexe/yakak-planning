@@ -10,6 +10,7 @@ import { CategoryManager } from "@/components/category-manager";
 import { TwitchChannelManager } from "@/components/twitch-channel-manager";
 import { AchievementShowcase } from "@/components/achievement-showcase";
 import { AdminAchievementGrant } from "@/components/admin-achievement-grant";
+import { ThemeSetting } from "@/components/theme-setting";
 
 export default async function SettingsPage() {
   const supabase = await createClient();
@@ -104,6 +105,9 @@ export default async function SettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Appearance */}
+      <ThemeSetting />
 
       {/* Achievements */}
       <AchievementShowcase
