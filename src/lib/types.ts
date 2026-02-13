@@ -159,6 +159,20 @@ export interface FeaturedBadge {
   tier: AchievementTier;
 }
 
+export interface EventRating {
+  id: string;
+  event_id: string;
+  user_id: string;
+  rating: number;
+  review: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EventRatingWithUser extends EventRating {
+  user: Pick<Profile, "id" | "display_name" | "avatar_url">;
+}
+
 export type NotificationType =
   | "event_created"
   | "event_updated"

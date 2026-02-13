@@ -19,7 +19,9 @@ import {
   PollWithDetails,
   ActivityCategory,
   FeaturedBadge,
+  EventRatingWithUser,
 } from "@/lib/types";
+import { EventRatingSection } from "@/components/event-rating";
 import {
   getCategoryIcon,
   getCategoryColorClass,
@@ -159,6 +161,15 @@ export default async function EventDetailPage({
     } as unknown as CommentWithUser;
   });
 
+  // Fetch event ratings with user profiles
+  const { data: eventRatings } = await supabase
+    .from("event_ratings")
+    .select(
+      "*, user:profiles!event_ratings_user_id_fkey(id, display_name, avatar_url)"
+    )
+    .eq("event_id", id)
+    .order("created_at", { ascending: false });
+
   // Fetch polls with options and votes
   const { data: rawPolls } = await supabase
     .from("polls")
@@ -202,6 +213,10 @@ export default async function EventDetailPage({
 
   const isCreator = event.created_by === currentProfile?.id;
   const isAdmin = currentProfile?.role === "admin";
+
+  const isPast = new Date(event.date) < new Date();
+  const canRate = isPast && userRsvp === "yes";
+  const ratingsWithUsers = (eventRatings ?? []) as unknown as EventRatingWithUser[];
 
   // Assemble polls with their options and votes
   const polls: PollWithDetails[] = (rawPolls ?? []).map((poll) => {
@@ -513,6 +528,28 @@ export default async function EventDetailPage({
           )}
         </CardContent>
       </Card>
+
+      {/* Reviews section (past events only) */}
+      {isPast && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              Reviews
+              {ratingsWithUsers.length > 0 && (
+                <Badge variant="secondary">{ratingsWithUsers.length}</Badge>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <EventRatingSection
+              eventId={event.id}
+              ratings={ratingsWithUsers}
+              currentProfileId={currentProfile?.id ?? ""}
+              canRate={canRate}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Polls section */}
       <Card>

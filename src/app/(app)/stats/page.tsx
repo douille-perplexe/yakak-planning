@@ -16,6 +16,9 @@ import {
   Moon,
   Crown,
   Star,
+  MessageSquare,
+  ThumbsUp,
+  ThumbsDown,
 } from "lucide-react";
 import { ActivityCategory } from "@/lib/types";
 import {
@@ -78,6 +81,14 @@ export default async function StatsPage() {
     .in("event_id", eventIds);
 
   const eventCategories = eventCats ?? [];
+
+  // 3b. All event ratings for past events
+  const { data: allRatings } = await supabase
+    .from("event_ratings")
+    .select("event_id, user_id, rating, review")
+    .in("event_id", eventIds);
+
+  const ratings = allRatings ?? [];
 
   // 4. All activity_categories
   const { data: allCats } = await supabase
@@ -153,6 +164,101 @@ export default async function StatsPage() {
       mostPopularCategory = categoryMap.get(catId) ?? null;
     }
   }
+
+  // ==================== RATING STATS ====================
+  const globalAvgRating =
+    ratings.length > 0
+      ? ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length
+      : 0;
+
+  // Event -> ratings list
+  const eventRatingsMap = new Map<string, number[]>();
+  for (const r of ratings) {
+    const list = eventRatingsMap.get(r.event_id) ?? [];
+    list.push(r.rating);
+    eventRatingsMap.set(r.event_id, list);
+  }
+
+  // Events with avg rating (min 3 ratings)
+  const ratedEvents: { id: string; title: string; avg: number; count: number }[] = [];
+  for (const [eid, ratingList] of eventRatingsMap) {
+    if (ratingList.length >= 3) {
+      const ev = eventMap.get(eid);
+      if (ev) {
+        ratedEvents.push({
+          id: eid,
+          title: ev.title,
+          avg: ratingList.reduce((a, b) => a + b, 0) / ratingList.length,
+          count: ratingList.length,
+        });
+      }
+    }
+  }
+  ratedEvents.sort((a, b) => b.avg - a.avg);
+
+  const bestRatedEvents = ratedEvents.slice(0, 3);
+  const couldImproveEvents =
+    ratedEvents.length >= 3
+      ? [...ratedEvents].sort((a, b) => a.avg - b.avg).slice(0, 3)
+      : [];
+
+  // Best category ratings
+  const categoryRatings = new Map<string, number[]>();
+  for (const r of ratings) {
+    const catIds = eventCategoryMap.get(r.event_id) ?? [];
+    for (const catId of catIds) {
+      const list = categoryRatings.get(catId) ?? [];
+      list.push(r.rating);
+      categoryRatings.set(catId, list);
+    }
+  }
+  const bestCategoryRatings = Array.from(categoryRatings.entries())
+    .map(([catId, rList]) => ({
+      category: categoryMap.get(catId),
+      avg: rList.reduce((a, b) => a + b, 0) / rList.length,
+      count: rList.length,
+    }))
+    .filter((c) => c.category)
+    .sort((a, b) => b.avg - a.avg);
+
+  // Member avg ratings given (top 5)
+  const memberRatingsGiven = new Map<string, number[]>();
+  for (const r of ratings) {
+    const list = memberRatingsGiven.get(r.user_id) ?? [];
+    list.push(r.rating);
+    memberRatingsGiven.set(r.user_id, list);
+  }
+  const memberAvgRatings = Array.from(memberRatingsGiven.entries())
+    .map(([uid, rList]) => ({
+      profile: profileMap.get(uid),
+      avg: rList.reduce((a, b) => a + b, 0) / rList.length,
+      count: rList.length,
+    }))
+    .filter((m) => m.profile)
+    .sort((a, b) => b.avg - a.avg)
+    .slice(0, 5);
+
+  // Best reviewer: member with most reviews (ratings with review text)
+  const memberReviewCounts = new Map<string, number>();
+  for (const r of ratings) {
+    if (r.review) {
+      memberReviewCounts.set(
+        r.user_id,
+        (memberReviewCounts.get(r.user_id) ?? 0) + 1
+      );
+    }
+  }
+  let bestReviewerId = "";
+  let bestReviewerCount = 0;
+  for (const [uid, count] of memberReviewCounts) {
+    if (count > bestReviewerCount) {
+      bestReviewerCount = count;
+      bestReviewerId = uid;
+    }
+  }
+  const bestReviewer = profileMap.get(bestReviewerId);
+
+  const hasRatingStats = ratedEvents.length > 0;
 
   // ==================== ACTIVITY RANKINGS ====================
   const memberRankings = profiles
@@ -436,6 +542,19 @@ export default async function StatsPage() {
             </p>
           </CardContent>
         </Card>
+        {ratings.length > 0 && (
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                <Star className="h-4 w-4" />
+                <span className="text-xs font-medium">Avg Rating</span>
+              </div>
+              <p className="text-2xl font-bold">
+                {globalAvgRating.toFixed(1)}<span className="text-sm font-normal text-muted-foreground">/5</span>
+              </p>
+            </CardContent>
+          </Card>
+        )}
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 text-muted-foreground mb-1">
@@ -544,6 +663,132 @@ export default async function StatsPage() {
                   </div>
                 );
               })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Top Rated Events */}
+      {hasRatingStats && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Star className="h-5 w-5" />
+              Top Rated Events
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-6">
+              {/* Best Rated */}
+              {bestRatedEvents.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <ThumbsUp className="h-4 w-4 text-green-500" />
+                    <span className="text-sm font-medium">Best Rated</span>
+                  </div>
+                  <div className="space-y-2">
+                    {bestRatedEvents.map((e, i) => (
+                      <div key={e.id} className="flex items-center gap-3 p-2 rounded-lg bg-muted/50">
+                        <span className="text-sm font-medium text-muted-foreground w-6 text-right">
+                          #{i + 1}
+                        </span>
+                        <span className="text-sm font-medium flex-1">{e.title}</span>
+                        <div className="flex items-center gap-1">
+                          <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                          <span className="text-sm font-medium">{e.avg.toFixed(1)}</span>
+                        </div>
+                        <Badge variant="secondary">{e.count} ratings</Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Could Improve */}
+              {couldImproveEvents.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <ThumbsDown className="h-4 w-4 text-orange-500" />
+                    <span className="text-sm font-medium">Could Improve</span>
+                  </div>
+                  <div className="space-y-2">
+                    {couldImproveEvents.map((e, i) => (
+                      <div key={e.id} className="flex items-center gap-3 p-2 rounded-lg bg-muted/50">
+                        <span className="text-sm font-medium text-muted-foreground w-6 text-right">
+                          #{i + 1}
+                        </span>
+                        <span className="text-sm font-medium flex-1">{e.title}</span>
+                        <div className="flex items-center gap-1">
+                          <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                          <span className="text-sm font-medium">{e.avg.toFixed(1)}</span>
+                        </div>
+                        <Badge variant="secondary">{e.count} ratings</Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Best Category Ratings */}
+              {bestCategoryRatings.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Crown className="h-4 w-4 text-yellow-500" />
+                    <span className="text-sm font-medium">Best Category Ratings</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {bestCategoryRatings.map(({ category, avg, count }) => {
+                      const Icon = getCategoryIcon(category!.icon);
+                      return (
+                        <div
+                          key={category!.id}
+                          className="flex items-center gap-3 p-2 rounded-lg bg-muted/50"
+                        >
+                          <Badge
+                            className={getCategoryColorClass(category!.color) + " border"}
+                          >
+                            <Icon className="h-3 w-3" />
+                            {category!.name}
+                          </Badge>
+                          <div className="flex items-center gap-1 ml-auto">
+                            <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                            <span className="text-sm font-medium">{avg.toFixed(1)}</span>
+                            <span className="text-xs text-muted-foreground">({count})</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Member Avg Ratings */}
+              {memberAvgRatings.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Users className="h-4 w-4 text-blue-500" />
+                    <span className="text-sm font-medium">Member Avg Ratings</span>
+                  </div>
+                  <div className="space-y-2">
+                    {memberAvgRatings.map(({ profile, avg, count }) => (
+                      <div key={profile!.id} className="flex items-center gap-3 p-2 rounded-lg bg-muted/50">
+                        <Avatar className="h-6 w-6">
+                          <AvatarImage src={profile!.avatar_url} />
+                          <AvatarFallback className="text-[10px]">
+                            {profile!.display_name.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm font-medium flex-1">{profile!.display_name}</span>
+                        <div className="flex items-center gap-1">
+                          <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                          <span className="text-sm font-medium">{avg.toFixed(1)}</span>
+                        </div>
+                        <span className="text-xs text-muted-foreground">({count} ratings)</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -665,6 +910,14 @@ export default async function StatsPage() {
                 title="Night Owl"
                 profile={nightOwl}
                 value={`${nightOwlCount} evening events`}
+              />
+            )}
+            {bestReviewer && bestReviewerCount > 0 && (
+              <StatCard
+                icon={<MessageSquare className="h-4 w-4 text-teal-500" />}
+                title="Best Reviewer"
+                profile={bestReviewer}
+                value={`${bestReviewerCount} reviews written`}
               />
             )}
           </div>
