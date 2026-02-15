@@ -15,6 +15,7 @@ interface CreateEventInput {
   date: string;
   location: string;
   description?: string;
+  duration_minutes?: number;
   reminder_hours?: number;
   estimated_cost?: number | null;
   category_ids?: string[];
@@ -49,6 +50,12 @@ export async function createEvent(input: CreateEventInput) {
   ) {
     return { success: false, error: "Cost must be 0 or greater" };
   }
+  if (
+    input.duration_minutes !== undefined &&
+    (input.duration_minutes < 15 || input.duration_minutes > 1440)
+  ) {
+    return { success: false, error: "Duration must be between 15 and 1440 minutes" };
+  }
 
   // Get current user's profile id
   const {
@@ -75,6 +82,7 @@ export async function createEvent(input: CreateEventInput) {
         input.estimated_cost !== undefined && input.estimated_cost !== null
           ? input.estimated_cost
           : null,
+      duration_minutes: input.duration_minutes ?? 120,
       reminder_hours: input.reminder_hours ?? 24,
       created_by: profile.id,
     })
@@ -157,6 +165,12 @@ export async function updateEvent(
   }
   if (input.description !== undefined)
     updates.description = input.description?.trim() || null;
+  if (input.duration_minutes !== undefined) {
+    if (input.duration_minutes < 15 || input.duration_minutes > 1440) {
+      return { success: false, error: "Duration must be between 15 and 1440 minutes" };
+    }
+    updates.duration_minutes = input.duration_minutes;
+  }
   if (input.reminder_hours !== undefined)
     updates.reminder_hours = input.reminder_hours;
   if (input.estimated_cost !== undefined)

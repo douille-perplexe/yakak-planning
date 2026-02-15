@@ -19,6 +19,7 @@ export interface Event {
   date: string;
   location: string;
   description: string | null;
+  duration_minutes: number;
   estimated_cost: number | null;
   reminder_hours: number;
   twitch_stream_id: string | null;

@@ -214,8 +214,9 @@ export default async function EventDetailPage({
   const isCreator = event.created_by === currentProfile?.id;
   const isAdmin = currentProfile?.role === "admin";
 
-  const isPast = new Date(event.date) < new Date();
-  const canRate = isPast && userRsvp === "yes";
+  const eventEndTime = new Date(event.date).getTime() + event.duration_minutes * 60000;
+  const isOver = eventEndTime < Date.now();
+  const canRate = isOver && userRsvp === "yes";
   const ratingsWithUsers = (eventRatings ?? []) as unknown as EventRatingWithUser[];
 
   // Assemble polls with their options and votes
@@ -316,7 +317,12 @@ export default async function EventDetailPage({
             </div>
             <div className="flex items-center gap-2 text-muted-foreground">
               <Clock className="h-4 w-4" />
-              <span>Reminder {event.reminder_hours}h before</span>
+              <span>
+                {event.duration_minutes >= 60
+                  ? `${Math.floor(event.duration_minutes / 60)}h${event.duration_minutes % 60 ? ` ${event.duration_minutes % 60}m` : ""}`
+                  : `${event.duration_minutes}m`}
+                {" · "}Reminder {event.reminder_hours}h before
+              </span>
             </div>
           </div>
 
@@ -381,11 +387,15 @@ export default async function EventDetailPage({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          <RsvpButtons
-            eventId={event.id}
-            currentStatus={userRsvp ?? null}
-            currentGuestCount={userGuestCount}
-          />
+          {isOver ? (
+            <p className="text-sm text-muted-foreground">This event has ended.</p>
+          ) : (
+            <RsvpButtons
+              eventId={event.id}
+              currentStatus={userRsvp ?? null}
+              currentGuestCount={userGuestCount}
+            />
+          )}
 
           {/* RSVP lists */}
           {yesRsvps.length > 0 && (
@@ -529,8 +539,8 @@ export default async function EventDetailPage({
         </CardContent>
       </Card>
 
-      {/* Reviews section (past events only) */}
-      {isPast && (
+      {/* Reviews section (ended events only) */}
+      {isOver && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

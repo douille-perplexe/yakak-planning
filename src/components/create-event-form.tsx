@@ -35,6 +35,7 @@ export function CreateEventForm({ categories }: CreateEventFormProps) {
       date: formData.get("date") as string,
       location: formData.get("location") as string,
       description: (formData.get("description") as string) || undefined,
+      duration_minutes: Number(formData.get("duration_minutes")) || 120,
       reminder_hours: Number(formData.get("reminder_hours")) || 24,
       estimated_cost: estimatedCost,
       category_ids: selectedCategoryIds,
@@ -78,6 +79,19 @@ export function CreateEventForm({ categories }: CreateEventFormProps) {
                 prefilledDate ? `${prefilledDate}T19:00` : undefined
               }
               required
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="duration_minutes">Duration (minutes)</Label>
+            <Input
+              id="duration_minutes"
+              name="duration_minutes"
+              type="number"
+              step={15}
+              min={15}
+              max={1440}
+              defaultValue={120}
             />
           </div>
 
