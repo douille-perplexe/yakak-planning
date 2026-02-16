@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Profile, NotificationPreference, ActivityCategory, TwitchChannel, AchievementDefinition, UserAchievementWithDefinition } from "@/lib/types";
+import { Profile, NotificationPreference, ActivityCategory, TwitchChannel, AchievementDefinition, UserAchievementWithDefinition, PoopMapToken } from "@/lib/types";
 import { AdminPanel } from "@/components/admin-panel";
 import { NotificationPreferences } from "@/components/notification-preferences";
 import { CategoryManager } from "@/components/category-manager";
@@ -11,6 +11,7 @@ import { TwitchChannelManager } from "@/components/twitch-channel-manager";
 import { AchievementShowcase } from "@/components/achievement-showcase";
 import { AdminAchievementGrant } from "@/components/admin-achievement-grant";
 import { ThemeSetting } from "@/components/theme-setting";
+import { PoopMapLinkAccount } from "@/components/poopmap-link-account";
 
 export default async function SettingsPage() {
   const supabase = await createClient();
@@ -41,6 +42,14 @@ export default async function SettingsPage() {
     .from("user_achievements")
     .select("*, achievement:achievement_definitions(*)")
     .eq("user_id", profile!.id);
+
+  const { data: poopMapTokenRow } = await supabase
+    .from("poopmap_tokens")
+    .select("*")
+    .eq("user_id", profile!.id)
+    .single();
+
+  const poopMapToken = (poopMapTokenRow ?? null) as PoopMapToken | null;
 
   const isAdmin = profile?.role === "admin";
 
@@ -120,6 +129,9 @@ export default async function SettingsPage() {
       <NotificationPreferences
         preferences={(notifPrefs ?? []) as NotificationPreference[]}
       />
+
+      {/* Poop Map */}
+      <PoopMapLinkAccount token={poopMapToken} />
 
       {/* Category management (admin) */}
       {isAdmin && <CategoryManager categories={categories} />}

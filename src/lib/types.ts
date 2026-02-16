@@ -205,6 +205,31 @@ export interface NotificationPreference {
   in_app_enabled: boolean;
 }
 
+export interface PoopMapToken {
+  id: string;
+  user_id: string;
+  device_token: string;
+  poopmap_username: string | null;
+  poopmap_user_id: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PoopMapPoop {
+  id: number;
+  latitude: number;
+  longitude: number;
+  note: string | null;
+  place: string | null;
+  rating: number | null;
+  created_at: string;
+  username: string;
+  user_id: number;
+  comments_count: number;
+  liked_by_you: boolean;
+  photos: string[];
+}
+
 export interface TwitchChannel {
   id: string;
   channel_name: string;

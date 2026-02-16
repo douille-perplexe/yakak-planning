@@ -6,9 +6,11 @@ import { CalendarDays, Plus, Users, Pin } from "lucide-react";
 import Link from "next/link";
 import { Fab } from "@/components/fab";
 import { MapLink } from "@/components/map-link";
-import { RsvpStatus, TwitchChannel } from "@/lib/types";
+import { RsvpStatus, TwitchChannel, PoopMapToken, PoopMapPoop } from "@/lib/types";
 import { TwitchLiveCard } from "@/components/twitch-live-card";
 import { fetchLiveStatuses, syncTwitchChannels } from "@/lib/twitch";
+import { PoopMapWidget } from "@/components/poopmap-widget";
+import { fetchFeed as fetchPoopFeed } from "@/lib/poopmap";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -69,6 +71,23 @@ export default async function DashboardPage() {
     .from("twitch_channels")
     .select("*")
     .order("created_at", { ascending: true });
+
+  // Fetch Poop Map token + feed for widget
+  const { data: poopMapTokenRow } = await supabase
+    .from("poopmap_tokens")
+    .select("*")
+    .eq("user_id", profile!.id)
+    .single();
+
+  const poopMapToken = poopMapTokenRow as PoopMapToken | null;
+  let poopMapFeed: PoopMapPoop[] = [];
+  if (poopMapToken) {
+    try {
+      poopMapFeed = await fetchPoopFeed(poopMapToken.device_token);
+    } catch {
+      // API error — show empty
+    }
+  }
 
   const channelNames = (twitchChannels ?? []).map((c: { channel_name: string }) => c.channel_name);
   const liveStatuses = await fetchLiveStatuses(channelNames);
@@ -196,6 +215,9 @@ export default async function DashboardPage() {
       {enrichedChannels.some((c) => c.is_live) && (
         <TwitchLiveCard channels={enrichedChannels} />
       )}
+
+      {/* Poop Map Widget */}
+      <PoopMapWidget poops={poopMapFeed} linked={!!poopMapToken} />
 
       {/* Upcoming Events */}
       <div>
