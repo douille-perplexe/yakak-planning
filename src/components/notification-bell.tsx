@@ -15,6 +15,7 @@ import {
   Activity,
   Award,
   Tv,
+  MapPin,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -38,6 +39,7 @@ const TYPE_ICONS: Record<NotificationType, React.ElementType> = {
   availability_signal: Activity,
   achievement_unlocked: Award,
   twitch_live: Tv,
+  new_poop: MapPin,
 };
 
 function timeAgo(dateStr: string): string {
@@ -88,7 +90,9 @@ export function NotificationBell({
       setUnreadCount((c) => Math.max(0, c - 1));
     }
     setOpen(false);
-    if (notif.type === "twitch_live" || notif.type === "achievement_unlocked") {
+    if (notif.type === "new_poop") {
+      router.push("/poop-map");
+    } else if (notif.type === "twitch_live" || notif.type === "achievement_unlocked") {
       router.push("/");
     } else if (notif.reference_id) {
       router.push(`/events/${notif.reference_id}`);

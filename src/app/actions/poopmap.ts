@@ -13,6 +13,7 @@ import {
 import type { MapBounds } from "@/lib/poopmap";
 import type { PoopMapPoop } from "@/lib/types";
 import { checkAndGrantAchievements } from "@/lib/achievements";
+import { createNotifications, getAllApprovedMemberIds } from "@/lib/notifications";
 
 export async function linkPoopMapAccount(email: string, password: string) {
   if (!email?.trim() || !password) {
@@ -119,7 +120,7 @@ export async function addPoop(data: {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id")
+    .select("id, display_name")
     .eq("user_id", user.id)
     .single();
 
@@ -147,6 +148,23 @@ export async function addPoop(data: {
     "poop_explorer",
     "poop_streak",
   ]).catch((err) => console.error("[poop-achievements]", err));
+
+  // Notify all approved members about the new poop
+  const message = data.place
+    ? `💩 ${profile.display_name} just logged a poop at ${data.place}!`
+    : `💩 ${profile.display_name} just logged a poop!`;
+
+  getAllApprovedMemberIds()
+    .then((memberIds) =>
+      createNotifications({
+        type: "new_poop",
+        referenceId: profile.id,
+        message,
+        recipientIds: memberIds,
+        excludeUserId: profile.id,
+      })
+    )
+    .catch((err) => console.error("[new-poop-notification]", err));
 
   revalidatePath("/poop-map");
   revalidatePath("/");

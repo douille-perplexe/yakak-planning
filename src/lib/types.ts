@@ -185,7 +185,8 @@ export type NotificationType =
   | "event_reminder"
   | "availability_signal"
   | "achievement_unlocked"
-  | "twitch_live";
+  | "twitch_live"
+  | "new_poop";
 
 export interface Notification {
   id: string;
