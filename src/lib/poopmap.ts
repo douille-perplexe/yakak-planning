@@ -92,6 +92,39 @@ export async function fetchFeed(deviceToken: string): Promise<PoopMapPoop[]> {
   return data.poops;
 }
 
+export interface MapBounds {
+  sw_lat: number;
+  sw_lng: number;
+  ne_lat: number;
+  ne_lng: number;
+  zoom: number;
+}
+
+export async function fetchMapFriendsAndMe(
+  deviceToken: string,
+  bounds: MapBounds
+): Promise<PoopMapPoop[]> {
+  const params = new URLSearchParams({
+    sw_lat: bounds.sw_lat.toString(),
+    sw_lng: bounds.sw_lng.toString(),
+    ne_lat: bounds.ne_lat.toString(),
+    ne_lng: bounds.ne_lng.toString(),
+    zoom: bounds.zoom.toString(),
+  });
+
+  const res = await fetch(
+    `${BASE_URL}/map/me_friends?${params.toString()}`,
+    { headers: authHeader(deviceToken) }
+  );
+
+  if (!res.ok) {
+    throw new Error(`Poop Map fetchMapFriendsAndMe failed: ${res.status}`);
+  }
+
+  const data = await res.json();
+  return data.poops ?? data;
+}
+
 export async function createPoop(
   deviceToken: string,
   data: {

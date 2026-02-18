@@ -5,8 +5,8 @@ import { MapPin } from "lucide-react";
 import Link from "next/link";
 import { PoopMapToken, PoopMapPoop } from "@/lib/types";
 import { fetchMyPoops, fetchFeed } from "@/lib/poopmap";
-import { PoopMapFeed } from "@/components/poopmap-feed";
 import { AddPoopForm } from "@/components/add-poop-form";
+import { PoopMapTabs } from "@/components/poopmap-tabs";
 
 export default async function PoopMapPage() {
   const supabase = await createClient();
@@ -64,25 +64,17 @@ export default async function PoopMapPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-foreground">Poop Map</h1>
         <AddPoopForm />
       </div>
 
-      <div>
-        <h2 className="text-lg font-semibold text-foreground mb-4">
-          My Poops
-        </h2>
-        <PoopMapFeed poops={myPoops} type="mine" />
-      </div>
-
-      <div>
-        <h2 className="text-lg font-semibold text-foreground mb-4">
-          Friends&apos; Feed
-        </h2>
-        <PoopMapFeed poops={feedPoops} type="friends" />
-      </div>
+      <PoopMapTabs
+        myPoops={myPoops}
+        feedPoops={feedPoops}
+        currentUserId={token.poopmap_user_id!}
+      />
     </div>
   );
 }

@@ -8,7 +8,9 @@ import {
   fetchMyPoops,
   fetchFeed,
   createPoop,
+  fetchMapFriendsAndMe,
 } from "@/lib/poopmap";
+import type { MapBounds } from "@/lib/poopmap";
 import type { PoopMapPoop } from "@/lib/types";
 
 export async function linkPoopMapAccount(email: string, password: string) {
@@ -141,6 +143,40 @@ export async function addPoop(data: {
   revalidatePath("/poop-map");
   revalidatePath("/");
   return { success: true };
+}
+
+export async function getMapPoops(
+  bounds: MapBounds
+): Promise<{ poops: PoopMapPoop[] }> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { poops: [] };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("user_id", user.id)
+    .single();
+
+  if (!profile) return { poops: [] };
+
+  const { data: token } = await supabase
+    .from("poopmap_tokens")
+    .select("device_token")
+    .eq("user_id", profile.id)
+    .single();
+
+  if (!token) return { poops: [] };
+
+  try {
+    const poops = await fetchMapFriendsAndMe(token.device_token, bounds);
+    return { poops };
+  } catch {
+    return { poops: [] };
+  }
 }
 
 export async function getMyPoops(): Promise<{

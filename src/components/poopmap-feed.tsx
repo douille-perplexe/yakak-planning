@@ -6,7 +6,7 @@ import { PoopMapPoop } from "@/lib/types";
 
 interface PoopMapFeedProps {
   poops: PoopMapPoop[];
-  type: "mine" | "friends";
+  currentUserId?: number;
 }
 
 function formatTimestamp(dateStr: string) {
@@ -36,16 +36,16 @@ function RatingStars({ rating }: { rating: number | null }) {
   );
 }
 
-export function PoopMapFeed({ poops, type }: PoopMapFeedProps) {
-  if (poops.length === 0) {
+export function PoopMapFeed({ poops, currentUserId }: PoopMapFeedProps) {
+  const sorted = [...poops].sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
+
+  if (sorted.length === 0) {
     return (
       <Card>
         <CardContent className="py-12 text-center">
-          <p className="text-muted-foreground">
-            {type === "mine"
-              ? "No poops yet. Add your first one!"
-              : "No poops in your friends' feed yet."}
-          </p>
+          <p className="text-muted-foreground">No poops in the feed yet.</p>
         </CardContent>
       </Card>
     );
@@ -53,42 +53,49 @@ export function PoopMapFeed({ poops, type }: PoopMapFeedProps) {
 
   return (
     <div className="space-y-3">
-      {poops.map((poop) => (
-        <Card key={poop.id}>
-          <CardContent className="py-4">
-            <div className="flex items-start justify-between">
-              <div className="space-y-1">
-                {type === "friends" && (
+      {sorted.map((poop) => {
+        const isOwn =
+          currentUserId != null && poop.user_id === currentUserId;
+        return (
+          <Card key={poop.id}>
+            <CardContent className="py-4">
+              <div className="flex items-start justify-between">
+                <div className="space-y-1">
                   <p className="text-sm font-medium text-foreground">
                     {poop.username}
+                    {isOwn && (
+                      <span className="ml-2 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+                        You
+                      </span>
+                    )}
                   </p>
-                )}
-                {poop.place && (
-                  <p className="text-sm text-muted-foreground flex items-center gap-1">
-                    <MapPin className="h-3.5 w-3.5" />
-                    {poop.place}
-                  </p>
-                )}
-                {poop.note && (
-                  <p className="text-sm text-foreground">{poop.note}</p>
-                )}
-                <div className="flex items-center gap-3 pt-1">
-                  <RatingStars rating={poop.rating} />
-                  {poop.comments_count > 0 && (
-                    <span className="text-xs text-muted-foreground flex items-center gap-1">
-                      <MessageSquare className="h-3 w-3" />
-                      {poop.comments_count}
-                    </span>
+                  {poop.place && (
+                    <p className="text-sm text-muted-foreground flex items-center gap-1">
+                      <MapPin className="h-3.5 w-3.5" />
+                      {poop.place}
+                    </p>
                   )}
+                  {poop.note && (
+                    <p className="text-sm text-foreground">{poop.note}</p>
+                  )}
+                  <div className="flex items-center gap-3 pt-1">
+                    <RatingStars rating={poop.rating} />
+                    {poop.comments_count > 0 && (
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <MessageSquare className="h-3 w-3" />
+                        {poop.comments_count}
+                      </span>
+                    )}
+                  </div>
                 </div>
+                <span className="text-xs text-muted-foreground shrink-0">
+                  {formatTimestamp(poop.created_at)}
+                </span>
               </div>
-              <span className="text-xs text-muted-foreground shrink-0">
-                {formatTimestamp(poop.created_at)}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 }
