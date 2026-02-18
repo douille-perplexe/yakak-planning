@@ -216,9 +216,6 @@ export default async function DashboardPage() {
         <TwitchLiveCard channels={enrichedChannels} />
       )}
 
-      {/* Poop Map Widget */}
-      <PoopMapWidget poops={poopMapFeed} linked={!!poopMapToken} />
-
       {/* Upcoming Events */}
       <div>
         <h2 className="text-lg font-semibold text-foreground mb-4">
@@ -280,6 +277,9 @@ export default async function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Poop Map Widget */}
+      <PoopMapWidget poops={poopMapFeed} linked={!!poopMapToken} />
 
       {/* Twitch — below events when no one is live */}
       {!enrichedChannels.some((c) => c.is_live) && enrichedChannels.length > 0 && (
