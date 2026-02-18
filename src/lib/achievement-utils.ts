@@ -8,6 +8,10 @@ import {
   ClipboardList,
   Heart,
   Award,
+  Target,
+  Star,
+  MapPin,
+  Zap,
 } from "lucide-react";
 import { type LucideIcon } from "lucide-react";
 import { AchievementTier } from "@/lib/types";
@@ -21,6 +25,10 @@ const ICON_MAP: Record<string, LucideIcon> = {
   "user-plus": UserPlus,
   "clipboard-list": ClipboardList,
   heart: Heart,
+  target: Target,
+  star: Star,
+  "map-pin": MapPin,
+  zap: Zap,
 };
 
 export function getAchievementIcon(iconName: string): LucideIcon {

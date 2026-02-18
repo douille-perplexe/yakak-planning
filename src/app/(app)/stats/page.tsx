@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -19,12 +20,16 @@ import {
   MessageSquare,
   ThumbsUp,
   ThumbsDown,
+  MapPin,
+  Flame,
+  Zap,
 } from "lucide-react";
-import { ActivityCategory } from "@/lib/types";
+import { ActivityCategory, PoopMapPoop } from "@/lib/types";
 import {
   getCategoryIcon,
   getCategoryColorClass,
 } from "@/lib/category-utils";
+import { fetchMyPoops } from "@/lib/poopmap";
 
 interface MemberProfile {
   id: string;
@@ -507,6 +512,113 @@ export default async function StatsPage() {
   const hasMoneyStats =
     biggestSpender || mostEconomical || bestValueHunter || highestCostEvent;
 
+  // ==================== POOP MAP STATS ====================
+  const serviceSupabase = await createServiceClient();
+  const { data: poopTokens } = await serviceSupabase
+    .from("poopmap_tokens")
+    .select("user_id, device_token, poopmap_username, poopmap_user_id");
+
+  const linkedUsers = poopTokens ?? [];
+
+  // Fetch all poops in parallel
+  const poopResults = await Promise.allSettled(
+    linkedUsers.map(async (t) => ({
+      userId: t.user_id,
+      poops: await fetchMyPoops(t.device_token),
+    }))
+  );
+
+  const userPoops = new Map<string, PoopMapPoop[]>();
+  for (const result of poopResults) {
+    if (result.status === "fulfilled") {
+      userPoops.set(result.value.userId, result.value.poops);
+    }
+  }
+
+  const allPoops = Array.from(userPoops.values()).flat();
+  const poopersWithPoops = Array.from(userPoops.entries()).filter(
+    ([, p]) => p.length > 0
+  );
+
+  // Poop overview
+  const totalPoops = allPoops.length;
+  const pooperCount = poopersWithPoops.length;
+  const ratedPoops = allPoops.filter((p) => p.rating != null && p.rating > 0);
+  const avgPoopRating =
+    ratedPoops.length > 0
+      ? ratedPoops.reduce((sum, p) => sum + p.rating!, 0) / ratedPoops.length
+      : 0;
+
+  // Most prolific pooper
+  const poopCountRanking = poopersWithPoops
+    .map(([uid, poops]) => ({
+      profile: profileMap.get(uid),
+      count: poops.length,
+    }))
+    .filter((m) => m.profile)
+    .sort((a, b) => b.count - a.count);
+
+  // Top poop places
+  const placeCounts = new Map<string, number>();
+  for (const p of allPoops) {
+    if (p.place) {
+      placeCounts.set(p.place, (placeCounts.get(p.place) ?? 0) + 1);
+    }
+  }
+  const topPoopPlaces = Array.from(placeCounts.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+
+  // Highest rated pooper (min 3 rated poops)
+  let highestRatedPooper: { profile: MemberProfile; avg: number } | null = null;
+  for (const [uid, poops] of userPoops) {
+    const rated = poops.filter((p) => p.rating != null && p.rating > 0);
+    if (rated.length >= 3) {
+      const avg = rated.reduce((s, p) => s + p.rating!, 0) / rated.length;
+      if (!highestRatedPooper || avg > highestRatedPooper.avg) {
+        const profile = profileMap.get(uid);
+        if (profile) highestRatedPooper = { profile, avg };
+      }
+    }
+  }
+
+  // Best poop streak
+  let bestPoopStreak: { profile: MemberProfile; streak: number } | null = null;
+  for (const [uid, poops] of userPoops) {
+    if (poops.length === 0) continue;
+    const uniqueDays = new Set(
+      poops.map((p) => {
+        const d = new Date(p.created_at);
+        return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+      })
+    );
+    const sorted = Array.from(uniqueDays)
+      .map((s) => {
+        const [y, m, d] = s.split("-").map(Number);
+        return new Date(y, m, d).getTime();
+      })
+      .sort((a, b) => a - b);
+
+    let maxStreak = 1;
+    let currentStreak = 1;
+    const ONE_DAY = 86400000;
+    for (let i = 1; i < sorted.length; i++) {
+      if (sorted[i] - sorted[i - 1] === ONE_DAY) {
+        currentStreak++;
+        if (currentStreak > maxStreak) maxStreak = currentStreak;
+      } else {
+        currentStreak = 1;
+      }
+    }
+
+    const profile = profileMap.get(uid);
+    if (profile && (!bestPoopStreak || maxStreak > bestPoopStreak.streak)) {
+      bestPoopStreak = { profile, streak: maxStreak };
+    }
+  }
+
+  const hasPoopStats = linkedUsers.length > 0 && totalPoops > 0;
+
   return (
     <div className="space-y-8">
       <h1 className="text-2xl font-bold text-foreground">Stats</h1>
@@ -923,6 +1035,150 @@ export default async function StatsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Poop Map Stats */}
+      {hasPoopStats && (
+        <>
+          <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+            💩 Poop Map
+          </h2>
+
+          {/* Poop Overview Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                  <Target className="h-4 w-4" />
+                  <span className="text-xs font-medium">Total Poops</span>
+                </div>
+                <p className="text-2xl font-bold">{totalPoops}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                  <Users className="h-4 w-4" />
+                  <span className="text-xs font-medium">Poopers</span>
+                </div>
+                <p className="text-2xl font-bold">{pooperCount}</p>
+              </CardContent>
+            </Card>
+            {ratedPoops.length > 0 && (
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                    <Star className="h-4 w-4" />
+                    <span className="text-xs font-medium">Avg Rating</span>
+                  </div>
+                  <p className="text-2xl font-bold">
+                    {avgPoopRating.toFixed(1)}<span className="text-sm font-normal text-muted-foreground">/5</span>
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Most Prolific Pooper */}
+          {poopCountRanking.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Trophy className="h-5 w-5" />
+                  Most Prolific Pooper
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {poopCountRanking.map((m, i) => (
+                    <div
+                      key={m.profile!.id}
+                      className="flex items-center gap-3"
+                    >
+                      <span className="text-sm font-medium text-muted-foreground w-6 text-right">
+                        {i === 0 ? (
+                          <Trophy className="h-4 w-4 text-yellow-500 inline" />
+                        ) : (
+                          `#${i + 1}`
+                        )}
+                      </span>
+                      <Avatar className="h-7 w-7">
+                        <AvatarImage src={m.profile!.avatar_url} />
+                        <AvatarFallback className="text-xs">
+                          {m.profile!.display_name.charAt(0)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm font-medium flex-1">
+                        {m.profile!.display_name}
+                      </span>
+                      <Badge variant="secondary">{m.count} poops</Badge>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Poop Highlights */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5" />
+                Poop Highlights
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {highestRatedPooper && (
+                  <StatCard
+                    icon={<Star className="h-4 w-4 text-yellow-500" />}
+                    title="Highest Rated Pooper"
+                    profile={highestRatedPooper.profile}
+                    value={`${highestRatedPooper.avg.toFixed(1)}/5 avg rating`}
+                  />
+                )}
+                {bestPoopStreak && bestPoopStreak.streak > 1 && (
+                  <StatCard
+                    icon={<Zap className="h-4 w-4 text-amber-500" />}
+                    title="Best Poop Streak"
+                    profile={bestPoopStreak.profile}
+                    value={`${bestPoopStreak.streak} days in a row`}
+                  />
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Top Poop Places */}
+          {topPoopPlaces.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MapPin className="h-5 w-5" />
+                  Top Poop Places
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {topPoopPlaces.map(([place, count], i) => (
+                    <div
+                      key={place}
+                      className="flex items-center gap-3 p-2 rounded-lg bg-muted/50"
+                    >
+                      <span className="text-sm font-medium text-muted-foreground w-6 text-right">
+                        #{i + 1}
+                      </span>
+                      <span className="text-sm font-medium flex-1">
+                        {place}
+                      </span>
+                      <Badge variant="secondary">{count} poops</Badge>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </>
+      )}
     </div>
   );
 }

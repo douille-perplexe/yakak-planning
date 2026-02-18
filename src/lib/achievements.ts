@@ -1,7 +1,72 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import { createNotifications, getAllApprovedMemberIds } from "@/lib/notifications";
 import { getTierEmoji } from "@/lib/achievement-utils";
-import { AchievementTier } from "@/lib/types";
+import { AchievementTier, PoopMapPoop } from "@/lib/types";
+import { fetchMyPoops } from "@/lib/poopmap";
+
+// Cache poop data per user to avoid redundant API calls when checking multiple poop achievement groups
+const poopCache = new Map<string, PoopMapPoop[]>();
+
+async function getCachedPoops(
+  supabase: Awaited<ReturnType<typeof createServiceClient>>,
+  userId: string
+): Promise<PoopMapPoop[]> {
+  const cached = poopCache.get(userId);
+  if (cached) return cached;
+
+  const { data: token } = await supabase
+    .from("poopmap_tokens")
+    .select("device_token")
+    .eq("user_id", userId)
+    .single();
+
+  if (!token) {
+    poopCache.set(userId, []);
+    return [];
+  }
+
+  try {
+    const poops = await fetchMyPoops(token.device_token);
+    poopCache.set(userId, poops);
+    return poops;
+  } catch {
+    poopCache.set(userId, []);
+    return [];
+  }
+}
+
+function calculateMaxConsecutiveDays(poops: PoopMapPoop[]): number {
+  if (poops.length === 0) return 0;
+
+  const uniqueDays = new Set(
+    poops.map((p) => {
+      const d = new Date(p.created_at);
+      return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+    })
+  );
+
+  const sorted = Array.from(uniqueDays)
+    .map((s) => {
+      const [y, m, d] = s.split("-").map(Number);
+      return new Date(y, m, d).getTime();
+    })
+    .sort((a, b) => a - b);
+
+  let maxStreak = 1;
+  let currentStreak = 1;
+  const ONE_DAY = 86400000;
+
+  for (let i = 1; i < sorted.length; i++) {
+    if (sorted[i] - sorted[i - 1] === ONE_DAY) {
+      currentStreak++;
+      if (currentStreak > maxStreak) maxStreak = currentStreak;
+    } else {
+      currentStreak = 1;
+    }
+  }
+
+  return maxStreak;
+}
 
 type CheckerFn = (
   supabase: Awaited<ReturnType<typeof createServiceClient>>,
@@ -117,6 +182,26 @@ const CHECKERS: Record<string, CheckerFn> = {
       .eq("status", "yes");
     return count ?? 0;
   },
+
+  poop_veteran: async (supabase, userId) => {
+    const poops = await getCachedPoops(supabase, userId);
+    return poops.length;
+  },
+
+  poop_rater: async (supabase, userId) => {
+    const poops = await getCachedPoops(supabase, userId);
+    return poops.filter((p) => p.rating != null && p.rating > 0).length;
+  },
+
+  poop_explorer: async (supabase, userId) => {
+    const poops = await getCachedPoops(supabase, userId);
+    return new Set(poops.filter((p) => p.place).map((p) => p.place)).size;
+  },
+
+  poop_streak: async (supabase, userId) => {
+    const poops = await getCachedPoops(supabase, userId);
+    return calculateMaxConsecutiveDays(poops);
+  },
 };
 
 export async function checkAndGrantAchievements(
@@ -197,4 +282,7 @@ export async function checkAndGrantAchievements(
         .catch((err) => console.error("[achievement-notify]", err));
     }
   }
+
+  // Clear poop cache after all checks complete
+  poopCache.delete(userId);
 }

@@ -12,6 +12,7 @@ import {
 } from "@/lib/poopmap";
 import type { MapBounds } from "@/lib/poopmap";
 import type { PoopMapPoop } from "@/lib/types";
+import { checkAndGrantAchievements } from "@/lib/achievements";
 
 export async function linkPoopMapAccount(email: string, password: string) {
   if (!email?.trim() || !password) {
@@ -139,6 +140,13 @@ export async function addPoop(data: {
   } catch {
     return { success: false, error: "Failed to add poop via Poop Map API" };
   }
+
+  checkAndGrantAchievements(profile.id, [
+    "poop_veteran",
+    "poop_rater",
+    "poop_explorer",
+    "poop_streak",
+  ]).catch((err) => console.error("[poop-achievements]", err));
 
   revalidatePath("/poop-map");
   revalidatePath("/");
