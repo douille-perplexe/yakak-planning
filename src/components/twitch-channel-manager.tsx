@@ -15,7 +15,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Trash2, Tv } from "lucide-react";
+import { Plus, Trash2, Tv, Loader2 } from "lucide-react";
 import { TwitchChannel } from "@/lib/types";
 import {
   addTwitchChannel,
@@ -30,9 +30,12 @@ interface TwitchChannelManagerProps {
 export function TwitchChannelManager({ channels }: TwitchChannelManagerProps) {
   const [addOpen, setAddOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleAdd = async (formData: FormData) => {
+    if (loading) return;
     setLoading(true);
     setError(null);
     const result = await addTwitchChannel(formData.get("channel") as string);
@@ -45,12 +48,18 @@ export function TwitchChannelManager({ channels }: TwitchChannelManagerProps) {
   };
 
   const handleDelete = async (id: string, name: string) => {
+    if (deletingId) return;
     if (!confirm(`Remove ${name} from monitored channels?`)) return;
+    setDeletingId(id);
     await removeTwitchChannel(id);
+    setDeletingId(null);
   };
 
   const handleToggleAutoEvents = async (id: string, enabled: boolean) => {
+    if (togglingId) return;
+    setTogglingId(id);
     await toggleAutoEvents(id, enabled);
+    setTogglingId(null);
   };
 
   return (
@@ -96,7 +105,7 @@ export function TwitchChannelManager({ channels }: TwitchChannelManagerProps) {
                   <p className="text-sm text-destructive">{error}</p>
                 )}
                 <Button type="submit" disabled={loading} className="w-full">
-                  {loading ? "Validating..." : "Add Channel"}
+                  {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Validating...</> : "Add Channel"}
                 </Button>
               </form>
             </DialogContent>
@@ -151,6 +160,7 @@ export function TwitchChannelManager({ channels }: TwitchChannelManagerProps) {
                     <Switch
                       id={`auto-${channel.id}`}
                       checked={channel.auto_create_events}
+                      disabled={togglingId === channel.id}
                       onCheckedChange={(checked) =>
                         handleToggleAutoEvents(channel.id, checked)
                       }
@@ -160,6 +170,7 @@ export function TwitchChannelManager({ channels }: TwitchChannelManagerProps) {
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7 text-destructive"
+                    disabled={deletingId === channel.id}
                     onClick={() =>
                       handleDelete(
                         channel.id,
@@ -167,7 +178,7 @@ export function TwitchChannelManager({ channels }: TwitchChannelManagerProps) {
                       )
                     }
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    {deletingId === channel.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                   </Button>
                 </div>
               </div>

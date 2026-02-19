@@ -16,6 +16,7 @@ import {
   Award,
   Tv,
   MapPin,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -68,6 +69,8 @@ export function NotificationBell({
   const [notifications, setNotifications] = useState(initialNotifications);
   const [unreadCount, setUnreadCount] = useState(initialUnreadCount);
   const [open, setOpen] = useState(false);
+  const [markingAllRead, setMarkingAllRead] = useState(false);
+  const [clickingNotifId, setClickingNotifId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     const data = await getNotifications();
@@ -82,6 +85,8 @@ export function NotificationBell({
   }, [refresh]);
 
   const handleClickNotification = async (notif: Notification) => {
+    if (clickingNotifId) return;
+    setClickingNotifId(notif.id);
     if (!notif.read) {
       await markNotifRead(notif.id);
       setNotifications((prev) =>
@@ -90,6 +95,7 @@ export function NotificationBell({
       setUnreadCount((c) => Math.max(0, c - 1));
     }
     setOpen(false);
+    setClickingNotifId(null);
     if (notif.type === "new_poop") {
       router.push("/poop-map");
     } else if (notif.type === "twitch_live" || notif.type === "achievement_unlocked") {
@@ -100,9 +106,12 @@ export function NotificationBell({
   };
 
   const handleMarkAllRead = async () => {
+    if (markingAllRead) return;
+    setMarkingAllRead(true);
     await markAllNotifsRead();
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     setUnreadCount(0);
+    setMarkingAllRead(false);
   };
 
   const badgeText = unreadCount > 99 ? "99+" : unreadCount.toString();
@@ -125,8 +134,10 @@ export function NotificationBell({
           {unreadCount > 0 && (
             <button
               onClick={handleMarkAllRead}
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+              disabled={markingAllRead}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
             >
+              {markingAllRead && <Loader2 className="h-3 w-3 animate-spin" />}
               Mark all read
             </button>
           )}
@@ -144,11 +155,16 @@ export function NotificationBell({
                   <button
                     key={notif.id}
                     onClick={() => handleClickNotification(notif)}
+                    disabled={clickingNotifId === notif.id}
                     className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-muted ${
                       !notif.read ? "bg-primary/5" : ""
                     }`}
                   >
-                    <Icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                    {clickingNotifId === notif.id ? (
+                      <Loader2 className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground animate-spin" />
+                    ) : (
+                      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                    )}
                     <div className="flex-1 min-w-0">
                       <p className="text-sm leading-snug">{notif.message}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">

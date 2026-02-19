@@ -4,7 +4,7 @@ import { useState, useRef } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Trash2, SmilePlus, ImagePlus, X } from "lucide-react";
+import { Send, Trash2, SmilePlus, ImagePlus, X, Loader2 } from "lucide-react";
 import { createComment, deleteComment } from "@/app/actions/comments";
 import { toggleReaction } from "@/app/actions/reactions";
 import { CommentWithUser, Profile, ReactionGroup, FeaturedBadge } from "@/lib/types";
@@ -80,11 +80,12 @@ function ReactionBar({
         <button
           key={r.emoji}
           onClick={() => handleToggle(r.emoji)}
+          disabled={loading}
           className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs transition-colors ${
             r.reacted_by_me
               ? "bg-primary/15 border border-primary/30"
               : "bg-muted border border-transparent hover:border-border"
-          }`}
+          } ${loading ? "pointer-events-none opacity-50" : ""}`}
         >
           <span>{r.emoji}</span>
           <span className="text-muted-foreground">{r.count}</span>
@@ -131,6 +132,7 @@ export function CommentThread({
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -184,8 +186,11 @@ export function CommentThread({
   };
 
   const handleDelete = async (commentId: string) => {
+    if (deletingId) return;
+    setDeletingId(commentId);
     setComments((prev) => prev.filter((c) => c.id !== commentId));
     await deleteComment(commentId, eventId);
+    setDeletingId(null);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -231,10 +236,15 @@ export function CommentThread({
                     {isOwn && (
                       <button
                         onClick={() => handleDelete(comment.id)}
+                        disabled={deletingId === comment.id}
                         className="opacity-0 group-hover:opacity-100 transition-opacity ml-auto"
                         title="Delete comment"
                       >
-                        <Trash2 className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
+                        {deletingId === comment.id ? (
+                          <Loader2 className="h-3.5 w-3.5 text-muted-foreground animate-spin" />
+                        ) : (
+                          <Trash2 className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
+                        )}
                       </button>
                     )}
                   </div>
@@ -321,7 +331,7 @@ export function CommentThread({
             disabled={(!content.trim() && !selectedImage) || loading}
             className="flex-shrink-0"
           >
-            <Send className="h-4 w-4" />
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           </Button>
         </div>
       </div>

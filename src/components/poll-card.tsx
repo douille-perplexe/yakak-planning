@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Lock, Check } from "lucide-react";
+import { Lock, Check, Loader2 } from "lucide-react";
 import { votePoll, closePoll } from "@/app/actions/polls";
 import { PollWithDetails } from "@/lib/types";
 
@@ -21,6 +21,8 @@ export function PollCard({
   const [totalVotes, setTotalVotes] = useState(poll.total_votes);
   const [isClosed, setIsClosed] = useState(poll.is_closed);
   const [loading, setLoading] = useState(false);
+  const [votingOptionId, setVotingOptionId] = useState<string | null>(null);
+  const [closingPoll, setClosingPoll] = useState(false);
 
   const isCreator = poll.user_id === currentProfileId;
 
@@ -28,6 +30,7 @@ export function PollCard({
     if (isClosed || loading) return;
 
     setLoading(true);
+    setVotingOptionId(optionId);
 
     // Optimistic update
     const prevVote = userVote;
@@ -46,13 +49,17 @@ export function PollCard({
     if (!prevVote) setTotalVotes((t) => t + 1);
 
     await votePoll(poll.id, optionId, eventId);
+    setVotingOptionId(null);
     setLoading(false);
   };
 
   const handleClose = async () => {
+    if (loading) return;
     setLoading(true);
+    setClosingPoll(true);
     setIsClosed(true);
     await closePoll(poll.id, eventId);
+    setClosingPoll(false);
     setLoading(false);
   };
 
@@ -102,9 +109,11 @@ export function PollCard({
                 />
                 <div className="relative flex items-center justify-between">
                   <span className="flex items-center gap-2">
-                    {isVoted && (
+                    {votingOptionId === option.id ? (
+                      <Loader2 className="h-3.5 w-3.5 text-primary animate-spin" />
+                    ) : isVoted ? (
                       <Check className="h-3.5 w-3.5 text-primary" />
-                    )}
+                    ) : null}
                     {option.label}
                   </span>
                   <span className="text-xs text-muted-foreground ml-2">
@@ -123,8 +132,8 @@ export function PollCard({
           onClick={handleClose}
           disabled={loading}
         >
-          <Lock className="mr-2 h-3.5 w-3.5" />
-          Close Poll
+          {closingPoll ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Lock className="mr-2 h-3.5 w-3.5" />}
+          {closingPoll ? "Closing..." : "Close Poll"}
         </Button>
       )}
     </div>

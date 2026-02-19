@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Pencil, Trash2, MoreVertical, X } from "lucide-react";
+import { Pencil, Trash2, MoreVertical, X, Loader2 } from "lucide-react";
 import { updateEvent, deleteEvent } from "@/app/actions/events";
 import { Event, ActivityCategory } from "@/lib/types";
 import { CategoryPicker } from "@/components/category-picker";
@@ -43,6 +43,7 @@ export function EventActions({
   const [fabOpen, setFabOpen] = useState(false);
 
   const handleEdit = async (formData: FormData) => {
+    if (loading) return;
     setLoading(true);
     setError(null);
 
@@ -69,6 +70,7 @@ export function EventActions({
   };
 
   const handleDelete = async () => {
+    if (deleting) return;
     setDeleting(true);
     await deleteEvent(eventId);
     setDeleting(false);
@@ -181,7 +183,7 @@ export function EventActions({
           <p className="text-sm text-destructive">{error}</p>
         )}
         <Button type="submit" disabled={loading} className="w-full">
-          {loading ? "Saving..." : "Save Changes"}
+          {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : "Save Changes"}
         </Button>
       </form>
     </DialogContent>
@@ -208,7 +210,7 @@ export function EventActions({
           onClick={handleDelete}
           disabled={deleting}
         >
-          {deleting ? "Cancelling..." : "Yes, cancel event"}
+          {deleting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Cancelling...</> : "Yes, cancel event"}
         </Button>
       </div>
     </DialogContent>

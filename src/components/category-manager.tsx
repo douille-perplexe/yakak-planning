@@ -13,7 +13,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
 import { ActivityCategory } from "@/lib/types";
 import {
   createCategory,
@@ -35,9 +35,11 @@ export function CategoryManager({ categories }: CategoryManagerProps) {
   const [editingCategory, setEditingCategory] =
     useState<ActivityCategory | null>(null);
   const [loading, setLoading] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleAdd = async (formData: FormData) => {
+    if (loading) return;
     setLoading(true);
     setError(null);
     const result = await createCategory({
@@ -54,7 +56,7 @@ export function CategoryManager({ categories }: CategoryManagerProps) {
   };
 
   const handleEdit = async (formData: FormData) => {
-    if (!editingCategory) return;
+    if (!editingCategory || loading) return;
     setLoading(true);
     setError(null);
     const result = await updateCategory(editingCategory.id, {
@@ -72,9 +74,12 @@ export function CategoryManager({ categories }: CategoryManagerProps) {
   };
 
   const handleDelete = async (id: string) => {
+    if (deletingId) return;
     if (!confirm("Delete this category? Events using it will lose this tag."))
       return;
+    setDeletingId(id);
     await deleteCategory(id);
+    setDeletingId(null);
   };
 
   const openEdit = (cat: ActivityCategory) => {
@@ -140,7 +145,7 @@ export function CategoryManager({ categories }: CategoryManagerProps) {
                   <p className="text-sm text-destructive">{error}</p>
                 )}
                 <Button type="submit" disabled={loading} className="w-full">
-                  {loading ? "Adding..." : "Add Category"}
+                  {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Adding...</> : "Add Category"}
                 </Button>
               </form>
             </DialogContent>
@@ -181,8 +186,9 @@ export function CategoryManager({ categories }: CategoryManagerProps) {
                       size="icon"
                       className="h-7 w-7 text-destructive"
                       onClick={() => handleDelete(cat.id)}
+                      disabled={deletingId === cat.id}
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      {deletingId === cat.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                     </Button>
                   </div>
                 </div>
@@ -238,7 +244,7 @@ export function CategoryManager({ categories }: CategoryManagerProps) {
                   <p className="text-sm text-destructive">{error}</p>
                 )}
                 <Button type="submit" disabled={loading} className="w-full">
-                  {loading ? "Saving..." : "Save Changes"}
+                  {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : "Save Changes"}
                 </Button>
               </form>
             )}

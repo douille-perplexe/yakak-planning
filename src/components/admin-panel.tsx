@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Check, X, UserMinus } from "lucide-react";
+import { Check, X, UserMinus, Loader2 } from "lucide-react";
 import { Profile } from "@/lib/types";
 import { approveUser, denyUser, removeMember } from "@/app/actions/admin";
 
@@ -21,6 +21,7 @@ export function AdminPanel({
   const [loading, setLoading] = useState<string | null>(null);
 
   const handleApprove = async (userId: string) => {
+    if (loading) return;
     setLoading(userId);
     const result = await approveUser(userId);
     if (result.success) {
@@ -37,6 +38,7 @@ export function AdminPanel({
   };
 
   const handleDeny = async (userId: string) => {
+    if (loading) return;
     setLoading(userId);
     const result = await denyUser(userId);
     if (result.success) {
@@ -46,6 +48,7 @@ export function AdminPanel({
   };
 
   const handleRemove = async (userId: string) => {
+    if (loading) return;
     if (!confirm("Are you sure you want to remove this member?")) return;
     setLoading(userId);
     const result = await removeMember(userId);
@@ -101,7 +104,7 @@ export function AdminPanel({
                       onClick={() => handleApprove(user.id)}
                       disabled={loading === user.id}
                     >
-                      <Check className="mr-1 h-4 w-4" />
+                      {loading === user.id ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Check className="mr-1 h-4 w-4" />}
                       Approve
                     </Button>
                     <Button
@@ -110,7 +113,7 @@ export function AdminPanel({
                       onClick={() => handleDeny(user.id)}
                       disabled={loading === user.id}
                     >
-                      <X className="mr-1 h-4 w-4" />
+                      {loading === user.id ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <X className="mr-1 h-4 w-4" />}
                       Deny
                     </Button>
                   </div>
@@ -161,7 +164,7 @@ export function AdminPanel({
                     onClick={() => handleRemove(member.id)}
                     disabled={loading === member.id}
                   >
-                    <UserMinus className="h-4 w-4" />
+                    {loading === member.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserMinus className="h-4 w-4" />}
                   </Button>
                 )}
               </div>

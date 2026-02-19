@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Check, HelpCircle, X, Minus, Plus } from "lucide-react";
+import { Check, HelpCircle, X, Minus, Plus, Loader2 } from "lucide-react";
 import { upsertRsvp } from "@/app/actions/rsvps";
 import { RsvpStatus } from "@/lib/types";
 
@@ -26,6 +26,7 @@ export function RsvpButtons({
   const [loading, setLoading] = useState(false);
 
   const handleRsvp = async (newStatus: RsvpStatus) => {
+    if (loading) return;
     setLoading(true);
     setStatus(newStatus);
     const guests = newStatus === "no" ? 0 : guestCount;
@@ -35,6 +36,7 @@ export function RsvpButtons({
   };
 
   const handleGuestChange = async (delta: number) => {
+    if (loading) return;
     const newCount = Math.max(0, Math.min(10, guestCount + delta));
     if (newCount === guestCount) return;
     setGuestCount(newCount);
@@ -58,7 +60,7 @@ export function RsvpButtons({
             disabled={loading}
             className="flex-1"
           >
-            <Icon className="mr-2 h-4 w-4" />
+            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Icon className="mr-2 h-4 w-4" />}
             {label}
           </Button>
         ))}
@@ -74,7 +76,7 @@ export function RsvpButtons({
               onClick={() => handleGuestChange(-1)}
               disabled={loading || guestCount <= 0}
             >
-              <Minus className="h-3 w-3" />
+              {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Minus className="h-3 w-3" />}
             </Button>
             <span className="w-6 text-center font-medium">{guestCount}</span>
             <Button
@@ -84,7 +86,7 @@ export function RsvpButtons({
               onClick={() => handleGuestChange(1)}
               disabled={loading || guestCount >= 10}
             >
-              <Plus className="h-3 w-3" />
+              {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
             </Button>
           </div>
         </div>

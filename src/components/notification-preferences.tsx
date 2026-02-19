@@ -44,6 +44,7 @@ export function NotificationPreferences({
   preferences: initialPreferences,
 }: NotificationPreferencesProps) {
   const [preferences, setPreferences] = useState(initialPreferences);
+  const [loadingKey, setLoadingKey] = useState<string | null>(null);
 
   const getPref = (type: NotificationType) =>
     preferences.find((p) => p.type === type);
@@ -53,6 +54,9 @@ export function NotificationPreferences({
     field: "email_enabled" | "in_app_enabled",
     currentValue: boolean
   ) => {
+    const key = `${type}_${field}`;
+    if (loadingKey) return;
+    setLoadingKey(key);
     const newValue = !currentValue;
 
     // Optimistic update
@@ -71,6 +75,7 @@ export function NotificationPreferences({
         )
       );
     }
+    setLoadingKey(null);
   };
 
   return (
@@ -105,6 +110,7 @@ export function NotificationPreferences({
                 <div className="w-16 flex justify-center">
                   <Switch
                     checked={pref?.in_app_enabled ?? true}
+                    disabled={loadingKey === `${type}_in_app_enabled`}
                     onCheckedChange={() =>
                       handleToggle(
                         type,
@@ -117,6 +123,7 @@ export function NotificationPreferences({
                 <div className="w-16 flex justify-center">
                   <Switch
                     checked={pref?.email_enabled ?? true}
+                    disabled={loadingKey === `${type}_email_enabled`}
                     onCheckedChange={() =>
                       handleToggle(
                         type,

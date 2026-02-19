@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Award } from "lucide-react";
+import { Award, Loader2 } from "lucide-react";
 import { AchievementDefinition, Profile } from "@/lib/types";
 import { adminGrantAchievement } from "@/app/actions/achievements";
 
@@ -89,7 +89,7 @@ export function AdminAchievementGrant({
             disabled={!selectedMember || !selectedAchievement || loading}
             size="sm"
           >
-            {loading ? "Granting..." : "Grant"}
+            {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Granting...</> : "Grant"}
           </Button>
           {message && (
             <span className={`text-sm ${message.includes("granted") ? "text-green-600" : "text-destructive"}`}>

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Pin, PinOff } from "lucide-react";
+import { Pin, PinOff, Loader2 } from "lucide-react";
 import { togglePinEvent } from "@/app/actions/events";
 
 export function PinToggleButton({
@@ -16,6 +16,7 @@ export function PinToggleButton({
   const [loading, setLoading] = useState(false);
 
   const handleToggle = async () => {
+    if (loading) return;
     setLoading(true);
     const result = await togglePinEvent(eventId);
     if (result.success) {
@@ -32,7 +33,12 @@ export function PinToggleButton({
       disabled={loading}
       title={pinned ? "Unpin event" : "Pin event"}
     >
-      {pinned ? (
+      {loading ? (
+        <>
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          {pinned ? "Unpin" : "Pin"}
+        </>
+      ) : pinned ? (
         <>
           <PinOff className="mr-2 h-4 w-4" />
           Unpin
