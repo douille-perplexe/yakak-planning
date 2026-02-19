@@ -103,6 +103,14 @@ export async function createEvent(input: CreateEventInput) {
     );
   }
 
+  // Auto-RSVP the creator as "yes"
+  await supabase.from("rsvps").upsert({
+    event_id: event.id,
+    user_id: profile.id,
+    status: "yes",
+    guest_count: 0,
+  });
+
   // Check achievements (fire-and-forget)
   checkAndGrantAchievements(profile.id, ["organizer"]).catch((err) =>
     console.error("[achievements]", err)

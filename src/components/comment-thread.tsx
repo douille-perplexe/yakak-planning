@@ -178,7 +178,8 @@ export function CommentThread({
       imageFormData
     );
 
-    if (result.success) {
+    if (result.success && result.comment) {
+      setComments((prev) => [...prev, result.comment as unknown as CommentWithUser]);
       setContent("");
       clearImage();
     }

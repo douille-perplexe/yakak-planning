@@ -75,12 +75,16 @@ export async function createComment(
     }
   }
 
-  const { error } = await supabase.from("comments").insert({
-    event_id: eventId,
-    user_id: profile.id,
-    content: trimmed,
-    image_url: imageUrl,
-  });
+  const { data: newComment, error } = await supabase
+    .from("comments")
+    .insert({
+      event_id: eventId,
+      user_id: profile.id,
+      content: trimmed,
+      image_url: imageUrl,
+    })
+    .select("*, user:profiles!comments_user_id_fkey(id, display_name, avatar_url, featured_badge:achievement_definitions(id, name, icon, tier))")
+    .single();
 
   if (error) {
     return { success: false, error: error.message };
@@ -110,7 +114,13 @@ export async function createComment(
   }).catch((err) => console.error("[notify]", err));
 
   revalidatePath(`/events/${eventId}`);
-  return { success: true };
+  return {
+    success: true,
+    comment: {
+      ...newComment,
+      reactions: [] as { emoji: string; count: number; reacted_by_me: boolean }[],
+    },
+  };
 }
 
 export async function deleteComment(commentId: string, eventId: string) {
