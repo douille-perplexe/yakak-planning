@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, Home, Settings, LogOut, BarChart3, MapPin } from "lucide-react";
+import { CalendarDays, Home, Settings, LogOut, BarChart3, MapPin, Sparkles } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -21,6 +21,7 @@ import logoIcon from "@/app/icon.png";
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: Home },
   { href: "/calendar", label: "Calendar", icon: CalendarDays },
+  { href: "/recommendations", label: "Discover", icon: Sparkles },
   { href: "/poop-map", label: "Poop Map", icon: MapPin },
   { href: "/stats", label: "Stats", icon: BarChart3 },
   { href: "/settings", label: "Settings", icon: Settings },

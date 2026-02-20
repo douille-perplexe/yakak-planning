@@ -18,6 +18,7 @@ const TYPE_LABELS: Record<NotificationType, string> = {
   availability_signal: "Availability signals",
   achievement_unlocked: "Achievements",
   twitch_live: "Twitch live",
+  new_recommendation: "Recommendations",
   new_poop: "Poop Map",
 };
 
@@ -33,6 +34,7 @@ const ORDERED_TYPES: NotificationType[] = [
   "availability_signal",
   "achievement_unlocked",
   "twitch_live",
+  "new_recommendation",
   "new_poop",
 ];
 

@@ -186,7 +186,8 @@ export type NotificationType =
   | "availability_signal"
   | "achievement_unlocked"
   | "twitch_live"
-  | "new_poop";
+  | "new_poop"
+  | "new_recommendation";
 
 export interface Notification {
   id: string;
@@ -229,6 +230,71 @@ export interface PoopMapPoop {
   comments_count: number;
   liked_by_you: boolean;
   photos: string[];
+}
+
+export type RecommendationCategory =
+  | "Movies"
+  | "TV Series"
+  | "Anime"
+  | "Games"
+  | "Music"
+  | "Books"
+  | "Outings"
+  | "Restaurants"
+  | "Activities"
+  | "Podcasts"
+  | "Other";
+
+export type RecommendationSource =
+  | "manual"
+  | "tmdb"
+  | "rawg"
+  | "spotify"
+  | "google_books";
+
+export interface Recommendation {
+  id: string;
+  user_id: string;
+  title: string;
+  description: string | null;
+  category: RecommendationCategory;
+  external_url: string | null;
+  image_url: string | null;
+  source: RecommendationSource;
+  source_id: string | null;
+  created_at: string;
+}
+
+export interface RecommendationWithUser extends Recommendation {
+  user: Pick<Profile, "id" | "display_name" | "avatar_url">;
+  likes_count: number;
+  liked_by_me: boolean;
+  saved_by_me: boolean;
+}
+
+export interface SavedRecommendation {
+  id: string;
+  user_id: string;
+  title: string;
+  description: string | null;
+  category: RecommendationCategory;
+  image_url: string | null;
+  external_url: string | null;
+  source: RecommendationSource;
+  source_id: string | null;
+  recommendation_id: string | null;
+  created_at: string;
+}
+
+export interface ApiRecommendation {
+  title: string;
+  description: string | null;
+  category: RecommendationCategory;
+  image_url: string | null;
+  external_url: string | null;
+  source: RecommendationSource;
+  source_id: string;
+  rating?: number;
 }
 
 export interface TwitchChannel {

@@ -16,6 +16,7 @@ import {
   Award,
   Tv,
   MapPin,
+  Sparkles,
   Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -41,6 +42,7 @@ const TYPE_ICONS: Record<NotificationType, React.ElementType> = {
   achievement_unlocked: Award,
   twitch_live: Tv,
   new_poop: MapPin,
+  new_recommendation: Sparkles,
 };
 
 function timeAgo(dateStr: string): string {
@@ -98,6 +100,8 @@ export function NotificationBell({
     setClickingNotifId(null);
     if (notif.type === "new_poop") {
       router.push("/poop-map");
+    } else if (notif.type === "new_recommendation") {
+      router.push("/recommendations");
     } else if (notif.type === "twitch_live" || notif.type === "achievement_unlocked") {
       router.push("/");
     } else if (notif.reference_id) {
