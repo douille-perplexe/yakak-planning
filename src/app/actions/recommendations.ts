@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createNotifications, getAllApprovedMemberIds } from "@/lib/notifications";
 import { fetchRandomMovies, fetchRandomTVShows, fetchRandomAnime, searchTMDB } from "@/lib/tmdb";
 import { fetchRandomGames, searchGames } from "@/lib/rawg";
-import { fetchFeaturedPlaylists, searchPlaylists } from "@/lib/spotify-search";
+import { fetchTopTracks, searchTracks } from "@/lib/itunes";
 import { fetchRandomBooks, searchBooks } from "@/lib/google-books";
 import type {
   RecommendationCategory,
@@ -48,7 +48,7 @@ export async function getRandomRecommendations(
         () => fetchRandomMovies(count),
         () => fetchRandomTVShows(count),
         () => fetchRandomGames(count),
-        () => fetchFeaturedPlaylists(count),
+        () => fetchTopTracks(count),
         () => fetchRandomBooks(count),
       ];
       const randomFetcher = fetchers[Math.floor(Math.random() * fetchers.length)];
@@ -68,7 +68,7 @@ export async function getRandomRecommendations(
           results = await fetchRandomGames(count);
           break;
         case "Music":
-          results = await fetchFeaturedPlaylists(count);
+          results = await fetchTopTracks(count);
           break;
         case "Books":
           results = await fetchRandomBooks(count);
@@ -111,7 +111,7 @@ export async function searchApiRecommendations(
         results = await searchGames(query);
         break;
       case "Music":
-        results = await searchPlaylists(query);
+        results = await searchTracks(query);
         break;
       case "Books":
         results = await searchBooks(query);

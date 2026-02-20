@@ -35,24 +35,9 @@ TMDB_API_KEY=your-tmdb-api-key
 RAWG_API_KEY=your-rawg-api-key
 ```
 
-### 1.3 Spotify (Music playlists)
+### 1.3 iTunes (Music tracks)
 
-Spotify requires an OAuth **Client Credentials** app (server-to-server, no user login needed).
-
-1. Go to the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
-2. Click **Create app**
-3. Fill in:
-   - **App name**: `Yakak`
-   - **Redirect URI**: `http://localhost:3000` (not used for client credentials, but required)
-4. Click **Save**
-5. On the app page, click **Settings** and copy the **Client ID** and **Client Secret**
-
-```env
-SPOTIFY_CLIENT_ID=your-spotify-client-id
-SPOTIFY_CLIENT_SECRET=your-spotify-client-secret
-```
-
-> Spotify access tokens are short-lived. The app caches them automatically and refreshes them before expiry.
+The iTunes Search API and RSS feeds are completely free and require no account or API key. No configuration needed — Music discovery works out of the box.
 
 ### 1.4 Google Books (Books)
 
@@ -105,10 +90,10 @@ Open `.env.local` and add the keys from step 1:
 ```env
 TMDB_API_KEY=your-tmdb-api-key
 RAWG_API_KEY=your-rawg-api-key
-SPOTIFY_CLIENT_ID=your-spotify-client-id
-SPOTIFY_CLIENT_SECRET=your-spotify-client-secret
 GOOGLE_BOOKS_API_KEY=your-google-books-api-key
 ```
+
+> Music (iTunes) requires no API key and works immediately.
 
 For production, add these same variables in your **Vercel project settings > Environment Variables**.
 
@@ -134,7 +119,7 @@ The `/recommendations` page has three tabs:
 | TV Series | TMDB | Yes |
 | Anime | TMDB (JP animation filter) | Yes |
 | Games | RAWG | Yes |
-| Music | Spotify (playlists) | Yes |
+| Music | iTunes (top tracks by genre, no key needed) | Yes |
 | Books | Google Books | Yes |
 | Outings | — | Yes |
 | Restaurants | — | Yes |
@@ -153,7 +138,7 @@ User opens Discover tab
 getRandomRecommendations(category)   ← server action
   ├─ Movies/TV/Anime  ──► TMDB popular endpoint (random page)
   ├─ Games            ──► RAWG games endpoint (random page)
-  ├─ Music            ──► Spotify featured playlists
+  ├─ Music            ──► iTunes RSS top tracks (random genre, no key needed)
   ├─ Books            ──► Google Books (random subject + offset)
   └─ All              ──► picks one source at random
   │
@@ -187,7 +172,7 @@ Email notifications for `new_recommendation` are **off by default**. Users can e
 3. On the **Discover** tab:
    - Select **Movies** and click spin — you should see 3 movie cards
    - Select **Games** and click spin — you should see 3 game cards
-   - Select **Music** and click spin — you should see 3 playlist cards
+   - Select **Music** and click spin — you should see 3 track cards
    - Select **Books** and click spin — you should see 3 book cards
 4. Save a pick → it should appear in the **Saved** tab
 5. Submit a pick to the community → it should appear in the **Community** tab and trigger a notification for other members
@@ -206,9 +191,10 @@ Email notifications for `new_recommendation` are **off by default**. Users can e
 - Your `TMDB_API_KEY` is invalid or was not copied correctly
 - Make sure you're using the **v3 API Key**, not the v4 access token
 
-### Spotify returns 401 or "token request failed"
-- Check that both `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET` are set and correct
-- Verify your app is not in **Development Mode** with restrictions that block server-to-server calls
+### Music shows "Failed to fetch recommendations"
+- iTunes requires no API key, so the issue is likely a network error or an Apple outage
+- Check that your server can reach `itunes.apple.com` (some corporate proxies block it)
+- Try again — transient Apple CDN errors usually resolve on retry
 
 ### RAWG returns 401 or 403
 - Your `RAWG_API_KEY` is invalid
