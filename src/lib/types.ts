@@ -284,6 +284,7 @@ export interface SavedRecommendation {
   source_id: string | null;
   recommendation_id: string | null;
   created_at: string;
+  consumed_at: string | null;
 }
 
 export interface ApiRecommendation {

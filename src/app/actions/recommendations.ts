@@ -337,6 +337,34 @@ export async function removeSavedRecommendation(savedId: string) {
   return { success: true };
 }
 
+export async function toggleConsumed(savedId: string) {
+  const supabase = await createClient();
+  const profile = await getProfile();
+  if (!profile) return { success: false, error: "Not authenticated" };
+
+  const { data: existing } = await supabase
+    .from("saved_recommendations")
+    .select("consumed_at")
+    .eq("id", savedId)
+    .eq("user_id", profile.id)
+    .single();
+
+  if (!existing) return { success: false, error: "Not found" };
+
+  const newValue = existing.consumed_at ? null : new Date().toISOString();
+
+  const { error } = await supabase
+    .from("saved_recommendations")
+    .update({ consumed_at: newValue })
+    .eq("id", savedId)
+    .eq("user_id", profile.id);
+
+  if (error) return { success: false, error: error.message };
+
+  revalidatePath("/recommendations");
+  return { success: true, consumed: newValue !== null };
+}
+
 export async function getSavedRecommendations(): Promise<SavedRecommendation[]> {
   const supabase = await createClient();
   const profile = await getProfile();

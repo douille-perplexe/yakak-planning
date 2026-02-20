@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { Sparkles } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -10,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { UserRecommendationCard } from "@/components/recommendation-card";
 import { getUserRecommendations } from "@/app/actions/recommendations";
+import { SubmitRecommendationForm } from "@/components/submit-recommendation-form";
 import type { RecommendationCategory, RecommendationWithUser } from "@/lib/types";
 
 const FILTER_CATEGORIES: (RecommendationCategory | "All")[] = [
@@ -96,15 +98,18 @@ export function UserRecommendationsFeed({
       )}
 
       {!isPending && recommendations.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">
-            No recommendations yet. Be the first to share!
-          </p>
+        <div className="text-center py-16 space-y-3">
+          <Sparkles className="h-10 w-10 mx-auto text-muted-foreground/40" />
+          <p className="font-medium text-foreground">No recommendations yet</p>
+          <p className="text-sm text-muted-foreground">Be the first to share something great</p>
+          <div className="flex justify-center pt-2">
+            <SubmitRecommendationForm />
+          </div>
         </div>
       )}
 
       {!isPending && recommendations.length > 0 && (
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="divide-y divide-border">
           {recommendations.map((rec) => (
             <UserRecommendationCard key={rec.id} rec={rec} />
           ))}
