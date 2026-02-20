@@ -9,6 +9,8 @@ import { createComment, deleteComment } from "@/app/actions/comments";
 import { toggleReaction } from "@/app/actions/reactions";
 import { CommentWithUser, Profile, ReactionGroup, FeaturedBadge } from "@/lib/types";
 import { AchievementBadge } from "@/components/achievement-badge";
+import { GifPicker } from "@/components/gif-picker";
+import { GifResult } from "@/lib/giphy";
 
 const EMOJI_PICKER = [
   "\u{1F44D}", "\u{2764}\u{FE0F}", "\u{1F602}", "\u{1F389}",
@@ -131,6 +133,7 @@ export function CommentThread({
   const [content, setContent] = useState("");
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [selectedGif, setSelectedGif] = useState<GifResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -150,6 +153,7 @@ export function CommentThread({
     }
 
     setSelectedImage(file);
+    setSelectedGif(null);
     const reader = new FileReader();
     reader.onload = (ev) => setImagePreview(ev.target?.result as string);
     reader.readAsDataURL(file);
@@ -162,7 +166,7 @@ export function CommentThread({
   };
 
   const handleSubmit = async () => {
-    if ((!content.trim() && !selectedImage) || loading) return;
+    if ((!content.trim() && !selectedImage && !selectedGif) || loading) return;
 
     setLoading(true);
 
@@ -175,13 +179,15 @@ export function CommentThread({
     const result = await createComment(
       eventId,
       content,
-      imageFormData
+      imageFormData,
+      selectedGif?.full_url,
     );
 
     if (result.success && result.comment) {
       setComments((prev) => [...prev, result.comment as unknown as CommentWithUser]);
       setContent("");
       clearImage();
+      setSelectedGif(null);
     }
     setLoading(false);
   };
@@ -295,6 +301,24 @@ export function CommentThread({
         </div>
       )}
 
+      {/* GIF preview */}
+      {selectedGif && (
+        <div className="relative inline-block">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={selectedGif.preview_url}
+            alt={selectedGif.title}
+            className="rounded-lg max-h-32 border border-border"
+          />
+          <button
+            onClick={() => setSelectedGif(null)}
+            className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-0.5"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
+
       {/* New comment form */}
       <div className="flex gap-3 pt-2 border-t border-border">
         <div className="flex-1">
@@ -326,10 +350,18 @@ export function CommentThread({
           >
             <ImagePlus className="h-4 w-4" />
           </Button>
+          <GifPicker
+            onSelect={(gif) => {
+              setSelectedGif(gif);
+              setSelectedImage(null);
+              setImagePreview(null);
+              if (fileInputRef.current) fileInputRef.current.value = "";
+            }}
+          />
           <Button
             size="icon"
             onClick={handleSubmit}
-            disabled={(!content.trim() && !selectedImage) || loading}
+            disabled={(!content.trim() && !selectedImage && !selectedGif) || loading}
             className="flex-shrink-0"
           >
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}

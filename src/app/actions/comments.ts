@@ -15,10 +15,11 @@ const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
 export async function createComment(
   eventId: string,
   content: string,
-  imageFormData?: FormData
+  imageFormData?: FormData,
+  gifUrl?: string,
 ) {
   const trimmed = content?.trim() ?? "";
-  if (!trimmed && !imageFormData) {
+  if (!trimmed && !imageFormData && !gifUrl) {
     return { success: false, error: "Comment must have text or an image" };
   }
   if (trimmed.length > 2000) {
@@ -42,8 +43,13 @@ export async function createComment(
 
   let imageUrl: string | null = null;
 
+  // Use GIF URL directly (no upload needed)
+  if (gifUrl) {
+    imageUrl = gifUrl;
+  }
+
   // Handle image upload if provided
-  if (imageFormData) {
+  if (!gifUrl && imageFormData) {
     const file = imageFormData.get("image") as File | null;
     if (file && file.size > 0) {
       if (!ALLOWED_TYPES.includes(file.type)) {
@@ -142,10 +148,10 @@ export async function deleteComment(commentId: string, eventId: string) {
     return { success: false, error: error.message };
   }
 
-  // Clean up image from storage if present
+  // Clean up image from storage if present (skip external URLs like Giphy)
   if (comment?.image_url) {
     const path = comment.image_url.split("/comment-images/")[1];
-    if (path) {
+    if (path && comment.image_url.includes("/comment-images/")) {
       await supabase.storage.from("comment-images").remove([path]);
     }
   }
