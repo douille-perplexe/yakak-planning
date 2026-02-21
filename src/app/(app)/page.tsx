@@ -242,8 +242,13 @@ export default async function DashboardPage() {
               const { yes, maybe, guestTotal } = getRsvpSummary(event.id);
               const userRsvp = getUserRsvp(event.id);
               return (
-                <Link key={event.id} href={`/events/${event.id}`}>
-                  <Card className={`hover:shadow-md transition-shadow cursor-pointer${event.is_pinned ? " border-primary/50 bg-primary/5" : ""}`}>
+                <div key={event.id} className="relative">
+                  <Link
+                    href={`/events/${event.id}`}
+                    className="absolute inset-0 z-0"
+                    aria-label={event.title}
+                  />
+                  <Card className={`hover:shadow-md transition-shadow${event.is_pinned ? " border-primary/50 bg-primary/5" : ""}`}>
                     <CardContent className="py-4">
                       <div className="flex items-start justify-between">
                         <div className="space-y-1">
@@ -265,22 +270,21 @@ export default async function DashboardPage() {
                           {event.creator && (
                             <Link
                               href={`/profile/${(event.creator as { id: string }).id}`}
-                              className="text-xs text-muted-foreground hover:underline"
-                              onClick={(e) => e.stopPropagation()}
+                              className="relative z-10 text-xs text-muted-foreground hover:underline"
                             >
                               by {(event.creator as { display_name: string }).display_name}
                             </Link>
                           )}
                         </div>
                         {userRsvp && (
-                          <Badge variant={rsvpBadgeVariant(userRsvp)}>
+                          <Badge variant={rsvpBadgeVariant(userRsvp)} className="relative z-10">
                             {userRsvp}
                           </Badge>
                         )}
                       </div>
                     </CardContent>
                   </Card>
-                </Link>
+                </div>
               );
             })}
           </div>
