@@ -54,7 +54,8 @@ const BASE = "https://www.strava.com";
 
 export function buildStravaAuthUrl(): string {
   const clientId = process.env.STRAVA_CLIENT_ID ?? "";
-  const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/strava/callback`;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const redirectUri = `${appUrl}/api/strava/callback`;
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: redirectUri,
