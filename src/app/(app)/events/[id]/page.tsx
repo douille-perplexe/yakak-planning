@@ -27,6 +27,10 @@ import {
   getCategoryColorClass,
 } from "@/lib/category-utils";
 import { AchievementBadge } from "@/components/achievement-badge";
+import { StravaActivitySection } from "@/components/strava-activity-section";
+import { getEventStravaLinksAction } from "@/app/actions/strava";
+import { buildStravaAuthUrl } from "@/lib/strava";
+import type { StravaActivityLinkWithUser } from "@/app/actions/strava";
 
 export default async function EventDetailPage({
   params,
@@ -169,6 +173,18 @@ export default async function EventDetailPage({
     )
     .eq("event_id", id)
     .order("created_at", { ascending: false });
+
+  // Fetch Strava activity links
+  const stravaLinks = await getEventStravaLinksAction(id) as StravaActivityLinkWithUser[];
+
+  // Check if current user has Strava connected
+  const { data: stravaTokenRow } = await supabase
+    .from("strava_tokens")
+    .select("id")
+    .eq("user_id", currentProfile!.id)
+    .single();
+  const hasStravaToken = !!stravaTokenRow;
+  const stravaAuthUrl = buildStravaAuthUrl();
 
   // Fetch polls with options and votes
   const { data: rawPolls } = await supabase
@@ -559,6 +575,18 @@ export default async function EventDetailPage({
             />
           </CardContent>
         </Card>
+      )}
+
+      {/* Strava activities section */}
+      {isOver && (
+        <StravaActivitySection
+          eventId={event.id}
+          initialLinks={stravaLinks}
+          currentProfileId={currentProfile?.id ?? ""}
+          isEligible={userRsvp === "yes"}
+          hasStravaToken={hasStravaToken}
+          stravaAuthUrl={stravaAuthUrl}
+        />
       )}
 
       {/* Polls section */}

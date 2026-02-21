@@ -9,6 +9,7 @@ import {
   getEventRespondersIds,
 } from "@/lib/notifications";
 import { checkAndGrantAchievements } from "@/lib/achievements";
+import { refreshStravaToken, createStravaActivity } from "@/lib/strava";
 
 interface CreateEventInput {
   title: string;
@@ -19,6 +20,7 @@ interface CreateEventInput {
   reminder_hours?: number;
   estimated_cost?: number | null;
   category_ids?: string[];
+  strava_sport_type?: string; // if set, also creates a manual Strava activity
 }
 
 export async function createEvent(input: CreateEventInput) {
@@ -110,6 +112,60 @@ export async function createEvent(input: CreateEventInput) {
     status: "yes",
     guest_count: 0,
   });
+
+  // Optionally create a Strava activity (fire-and-forget, non-blocking)
+  if (input.strava_sport_type) {
+    const sportType = input.strava_sport_type;
+    (async () => {
+      try {
+        const { data: stravaToken } = await supabase
+          .from("strava_tokens")
+          .select("access_token, refresh_token, token_expires_at")
+          .eq("user_id", profile.id)
+          .single();
+        if (!stravaToken) return;
+
+        let accessToken = stravaToken.access_token;
+        const expiresAt = new Date(stravaToken.token_expires_at).getTime();
+        if (Date.now() >= expiresAt - 60_000) {
+          const refreshed = await refreshStravaToken(stravaToken.refresh_token);
+          accessToken = refreshed.access_token;
+          await supabase
+            .from("strava_tokens")
+            .update({
+              access_token: refreshed.access_token,
+              refresh_token: refreshed.refresh_token,
+              token_expires_at: new Date(refreshed.expires_at * 1000).toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq("user_id", profile.id);
+        }
+
+        const stravaActivity = await createStravaActivity(accessToken, {
+          name: input.title.trim(),
+          sport_type: sportType,
+          start_date_local: input.date,
+          elapsed_time: (input.duration_minutes ?? 120) * 60,
+          description: input.description?.trim() || undefined,
+        });
+
+        await supabase.from("strava_activity_links").insert({
+          event_id: event.id,
+          user_id: profile.id,
+          strava_activity_id: stravaActivity.id,
+          activity_name: stravaActivity.name,
+          sport_type: stravaActivity.sport_type,
+          start_date: stravaActivity.start_date,
+          elapsed_time: stravaActivity.elapsed_time,
+          distance: stravaActivity.distance > 0 ? stravaActivity.distance : null,
+          total_elevation_gain: stravaActivity.total_elevation_gain > 0 ? stravaActivity.total_elevation_gain : null,
+          average_speed: stravaActivity.average_speed > 0 ? stravaActivity.average_speed : null,
+        });
+      } catch (err) {
+        console.error("[strava] createActivity on event creation", err);
+      }
+    })();
+  }
 
   // Check achievements (fire-and-forget)
   checkAndGrantAchievements(profile.id, ["organizer"]).catch((err) =>

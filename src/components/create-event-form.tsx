@@ -10,18 +10,23 @@ import { Textarea } from "@/components/ui/textarea";
 import { createEvent } from "@/app/actions/events";
 import { CategoryPicker } from "@/components/category-picker";
 import { ActivityCategory } from "@/lib/types";
+import { STRAVA_SPORT_TYPES } from "@/lib/strava";
+import { Activity } from "lucide-react";
 
 interface CreateEventFormProps {
   categories: ActivityCategory[];
+  hasStrava?: boolean;
 }
 
-export function CreateEventForm({ categories }: CreateEventFormProps) {
+export function CreateEventForm({ categories, hasStrava = false }: CreateEventFormProps) {
   const searchParams = useSearchParams();
   const prefilledDate = searchParams.get("date") ?? "";
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
+  const [stravaEnabled, setStravaEnabled] = useState(false);
+  const [stravaSportType, setStravaSportType] = useState("Run");
 
   const handleSubmit = async (formData: FormData) => {
     setLoading(true);
@@ -39,6 +44,7 @@ export function CreateEventForm({ categories }: CreateEventFormProps) {
       reminder_hours: Number(formData.get("reminder_hours")) || 24,
       estimated_cost: estimatedCost,
       category_ids: selectedCategoryIds,
+      strava_sport_type: stravaEnabled ? stravaSportType : undefined,
     });
 
     if (!result?.success && result?.error) {
@@ -155,6 +161,41 @@ export function CreateEventForm({ categories }: CreateEventFormProps) {
               max={720}
             />
           </div>
+
+          {hasStrava && (
+            <div className="rounded-lg border border-border p-3 space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="flex items-center gap-2 cursor-pointer" htmlFor="strava-toggle">
+                  <Activity className="h-4 w-4 text-orange-500" />
+                  Also create on Strava
+                </Label>
+                <input
+                  id="strava-toggle"
+                  type="checkbox"
+                  checked={stravaEnabled}
+                  onChange={(e) => setStravaEnabled(e.target.checked)}
+                  className="h-4 w-4 accent-orange-500"
+                />
+              </div>
+              {stravaEnabled && (
+                <div>
+                  <Label htmlFor="strava-sport-type">Sport type</Label>
+                  <select
+                    id="strava-sport-type"
+                    value={stravaSportType}
+                    onChange={(e) => setStravaSportType(e.target.value)}
+                    className="mt-1.5 flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                  >
+                    {STRAVA_SPORT_TYPES.map((t) => (
+                      <option key={t.value} value={t.value}>
+                        {t.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+          )}
 
           {error && <p className="text-sm text-destructive">{error}</p>}
 

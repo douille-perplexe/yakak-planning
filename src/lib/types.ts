@@ -207,6 +207,35 @@ export interface NotificationPreference {
   in_app_enabled: boolean;
 }
 
+export interface StravaToken {
+  id: string;
+  user_id: string;
+  strava_athlete_id: number;
+  strava_username: string | null;
+  strava_firstname: string | null;
+  strava_lastname: string | null;
+  access_token: string;
+  refresh_token: string;
+  token_expires_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface StravaActivityLink {
+  id: string;
+  event_id: string;
+  user_id: string;
+  strava_activity_id: number;
+  activity_name: string;
+  sport_type: string;
+  start_date: string;
+  elapsed_time: number;
+  distance: number | null;
+  total_elevation_gain: number | null;
+  average_speed: number | null;
+  created_at: string;
+}
+
 export interface PoopMapToken {
   id: string;
   user_id: string;

@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Profile, NotificationPreference, ActivityCategory, TwitchChannel, AchievementDefinition, UserAchievementWithDefinition, PoopMapToken } from "@/lib/types";
+import { Profile, NotificationPreference, ActivityCategory, TwitchChannel, AchievementDefinition, UserAchievementWithDefinition, PoopMapToken, StravaToken } from "@/lib/types";
 import { AdminPanel } from "@/components/admin-panel";
 import { NotificationPreferences } from "@/components/notification-preferences";
 import { CategoryManager } from "@/components/category-manager";
@@ -12,6 +12,8 @@ import { AchievementShowcase } from "@/components/achievement-showcase";
 import { AdminAchievementGrant } from "@/components/admin-achievement-grant";
 import { ThemeSetting } from "@/components/theme-setting";
 import { PoopMapLinkAccount } from "@/components/poopmap-link-account";
+import { StravaLinkAccount } from "@/components/strava-link-account";
+import { buildStravaAuthUrl } from "@/lib/strava";
 
 export default async function SettingsPage() {
   const supabase = await createClient();
@@ -50,6 +52,15 @@ export default async function SettingsPage() {
     .single();
 
   const poopMapToken = (poopMapTokenRow ?? null) as PoopMapToken | null;
+
+  const { data: stravaTokenRow } = await supabase
+    .from("strava_tokens")
+    .select("*")
+    .eq("user_id", profile!.id)
+    .single();
+
+  const stravaToken = (stravaTokenRow ?? null) as StravaToken | null;
+  const stravaAuthUrl = buildStravaAuthUrl();
 
   const isAdmin = profile?.role === "admin";
 
@@ -129,6 +140,9 @@ export default async function SettingsPage() {
       <NotificationPreferences
         preferences={(notifPrefs ?? []) as NotificationPreference[]}
       />
+
+      {/* Strava */}
+      <StravaLinkAccount token={stravaToken} authUrl={stravaAuthUrl} />
 
       {/* Poop Map */}
       <PoopMapLinkAccount token={poopMapToken} />
