@@ -10,6 +10,7 @@ export interface Profile {
   email: string;
   role: UserRole;
   status: UserStatus;
+  bio?: string | null;
   created_at: string;
 }
 

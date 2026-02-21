@@ -426,9 +426,10 @@ export default async function EventDetailPage({
                     "id" | "display_name" | "avatar_url"
                   > & { featured_badge: FeaturedBadge | null };
                   return (
-                    <div
+                    <Link
                       key={rsvp.id}
-                      className="flex items-center gap-2 bg-muted rounded-full px-3 py-1"
+                      href={`/profile/${rsvpUser.id}`}
+                      className="flex items-center gap-2 bg-muted rounded-full px-3 py-1 hover:bg-muted/80"
                     >
                       <Avatar className="h-5 w-5">
                         <AvatarImage src={rsvpUser.avatar_url} />
@@ -445,7 +446,7 @@ export default async function EventDetailPage({
                           </span>
                         )}
                       </span>
-                    </div>
+                    </Link>
                   );
                 })}
               </div>
@@ -464,9 +465,10 @@ export default async function EventDetailPage({
                     "id" | "display_name" | "avatar_url"
                   > & { featured_badge: FeaturedBadge | null };
                   return (
-                    <div
+                    <Link
                       key={rsvp.id}
-                      className="flex items-center gap-2 bg-muted rounded-full px-3 py-1"
+                      href={`/profile/${rsvpUser.id}`}
+                      className="flex items-center gap-2 bg-muted rounded-full px-3 py-1 hover:bg-muted/80"
                     >
                       <Avatar className="h-5 w-5">
                         <AvatarImage src={rsvpUser.avatar_url} />
@@ -483,7 +485,7 @@ export default async function EventDetailPage({
                           </span>
                         )}
                       </span>
-                    </div>
+                    </Link>
                   );
                 })}
               </div>
@@ -502,9 +504,10 @@ export default async function EventDetailPage({
                     "id" | "display_name" | "avatar_url"
                   > & { featured_badge: FeaturedBadge | null };
                   return (
-                    <div
+                    <Link
                       key={rsvp.id}
-                      className="flex items-center gap-2 bg-muted rounded-full px-3 py-1 opacity-60"
+                      href={`/profile/${rsvpUser.id}`}
+                      className="flex items-center gap-2 bg-muted rounded-full px-3 py-1 hover:bg-muted/80 opacity-60"
                     >
                       <Avatar className="h-5 w-5">
                         <AvatarImage src={rsvpUser.avatar_url} />
@@ -516,7 +519,7 @@ export default async function EventDetailPage({
                         {rsvpUser.display_name}
                         <AchievementBadge badge={rsvpUser.featured_badge} />
                       </span>
-                    </div>
+                    </Link>
                   );
                 })}
               </div>
@@ -532,9 +535,10 @@ export default async function EventDetailPage({
                 {noResponse.map((member) => {
                   const m = member as typeof member & { featured_badge: FeaturedBadge | null };
                   return (
-                    <div
+                    <Link
                       key={m.id}
-                      className="flex items-center gap-2 bg-muted rounded-full px-3 py-1 opacity-40"
+                      href={`/profile/${m.id}`}
+                      className="flex items-center gap-2 bg-muted rounded-full px-3 py-1 hover:bg-muted/80 opacity-40"
                     >
                       <Avatar className="h-5 w-5">
                         <AvatarImage src={m.avatar_url} />
@@ -546,7 +550,7 @@ export default async function EventDetailPage({
                         {m.display_name}
                         <AchievementBadge badge={m.featured_badge} />
                       </span>
-                    </div>
+                    </Link>
                   );
                 })}
               </div>

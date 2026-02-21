@@ -20,12 +20,14 @@ interface AchievementShowcaseProps {
   allDefinitions: AchievementDefinition[];
   userAchievements: UserAchievementWithDefinition[];
   currentFeaturedId: string | null;
+  readOnly?: boolean;
 }
 
 export function AchievementShowcase({
   allDefinitions,
   userAchievements,
   currentFeaturedId,
+  readOnly = false,
 }: AchievementShowcaseProps) {
   const [featuredId, setFeaturedId] = useState(currentFeaturedId);
   const [loading, setLoading] = useState(false);
@@ -171,7 +173,7 @@ export function AchievementShowcase({
                   </p>
                 )}
               </div>
-              {isUnlocked && (
+              {isUnlocked && !readOnly && (
                 <DialogFooter>
                   <Button
                     variant={isFeatured ? "outline" : "default"}

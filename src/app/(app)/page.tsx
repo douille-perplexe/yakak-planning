@@ -262,6 +262,15 @@ export default async function DashboardPage() {
                           <p className="text-sm text-muted-foreground">
                             {yes} going{guestTotal > 0 && ` (+${guestTotal} guest${guestTotal !== 1 ? "s" : ""})`} &middot; {maybe} maybe
                           </p>
+                          {event.creator && (
+                            <Link
+                              href={`/profile/${(event.creator as { id: string }).id}`}
+                              className="text-xs text-muted-foreground hover:underline"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              by {(event.creator as { display_name: string }).display_name}
+                            </Link>
+                          )}
                         </div>
                         {userRsvp && (
                           <Badge variant={rsvpBadgeVariant(userRsvp)}>

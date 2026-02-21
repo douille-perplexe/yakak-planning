@@ -24,6 +24,7 @@ import {
   Flame,
   Zap,
 } from "lucide-react";
+import Link from "next/link";
 import { ActivityCategory, PoopMapPoop } from "@/lib/types";
 import {
   getCategoryIcon,
@@ -711,15 +712,17 @@ export default async function StatsPage() {
                       `#${i + 1}`
                     )}
                   </span>
-                  <Avatar className="h-7 w-7">
-                    <AvatarImage src={m.profile.avatar_url} />
-                    <AvatarFallback className="text-xs">
-                      {m.profile.display_name.charAt(0)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="text-sm font-medium flex-1">
-                    {m.profile.display_name}
-                  </span>
+                  <Link href={`/profile/${m.profile.id}`} className="flex items-center gap-2 hover:underline flex-1 min-w-0">
+                    <Avatar className="h-7 w-7">
+                      <AvatarImage src={m.profile.avatar_url} />
+                      <AvatarFallback className="text-xs">
+                        {m.profile.display_name.charAt(0)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-sm font-medium truncate">
+                      {m.profile.display_name}
+                    </span>
+                  </Link>
                   <Badge variant="secondary">{m.count} events</Badge>
                 </div>
               ))}
@@ -760,7 +763,7 @@ export default async function StatsPage() {
                       <Icon className="h-3 w-3" />
                       {category.name}
                     </Badge>
-                    <div className="flex items-center gap-2 ml-auto">
+                    <Link href={`/profile/${champion.id}`} className="flex items-center gap-2 ml-auto hover:underline">
                       <Avatar className="h-6 w-6">
                         <AvatarImage src={champion.avatar_url} />
                         <AvatarFallback className="text-[10px]">
@@ -771,7 +774,7 @@ export default async function StatsPage() {
                       <span className="text-xs text-muted-foreground">
                         ({count})
                       </span>
-                    </div>
+                    </Link>
                   </div>
                 );
               })}
@@ -884,13 +887,15 @@ export default async function StatsPage() {
                   <div className="space-y-2">
                     {memberAvgRatings.map(({ profile, avg, count }) => (
                       <div key={profile!.id} className="flex items-center gap-3 p-2 rounded-lg bg-muted/50">
-                        <Avatar className="h-6 w-6">
-                          <AvatarImage src={profile!.avatar_url} />
-                          <AvatarFallback className="text-[10px]">
-                            {profile!.display_name.charAt(0)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="text-sm font-medium flex-1">{profile!.display_name}</span>
+                        <Link href={`/profile/${profile!.id}`} className="flex items-center gap-2 hover:underline flex-1 min-w-0">
+                          <Avatar className="h-6 w-6">
+                            <AvatarImage src={profile!.avatar_url} />
+                            <AvatarFallback className="text-[10px]">
+                              {profile!.display_name.charAt(0)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="text-sm font-medium">{profile!.display_name}</span>
+                        </Link>
                         <div className="flex items-center gap-1">
                           <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
                           <span className="text-sm font-medium">{avg.toFixed(1)}</span>
@@ -1101,15 +1106,17 @@ export default async function StatsPage() {
                           `#${i + 1}`
                         )}
                       </span>
-                      <Avatar className="h-7 w-7">
-                        <AvatarImage src={m.profile!.avatar_url} />
-                        <AvatarFallback className="text-xs">
-                          {m.profile!.display_name.charAt(0)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-sm font-medium flex-1">
-                        {m.profile!.display_name}
-                      </span>
+                      <Link href={`/profile/${m.profile!.id}`} className="flex items-center gap-2 hover:underline flex-1 min-w-0">
+                        <Avatar className="h-7 w-7">
+                          <AvatarImage src={m.profile!.avatar_url} />
+                          <AvatarFallback className="text-xs">
+                            {m.profile!.display_name.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm font-medium truncate">
+                          {m.profile!.display_name}
+                        </span>
+                      </Link>
                       <Badge variant="secondary">{m.count} poops</Badge>
                     </div>
                   ))}
@@ -1202,7 +1209,7 @@ function StatCard({
           {title}
         </span>
       </div>
-      <div className="flex items-center gap-2">
+      <Link href={`/profile/${profile.id}`} className="flex items-center gap-2 hover:underline">
         <Avatar className="h-6 w-6">
           <AvatarImage src={profile.avatar_url} />
           <AvatarFallback className="text-[10px]">
@@ -1210,7 +1217,7 @@ function StatCard({
           </AvatarFallback>
         </Avatar>
         <span className="text-sm font-medium">{profile.display_name}</span>
-      </div>
+      </Link>
       <p className="text-xs text-muted-foreground mt-1">{value}</p>
     </div>
   );

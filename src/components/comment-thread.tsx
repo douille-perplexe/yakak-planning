@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -225,18 +226,20 @@ export function CommentThread({
 
             return (
               <div key={comment.id} className="flex gap-3 group">
-                <Avatar className="h-8 w-8 mt-0.5 flex-shrink-0">
-                  <AvatarImage src={author.avatar_url} />
-                  <AvatarFallback className="text-xs">
-                    {author.display_name.charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
+                <Link href={`/profile/${author.id}`} className="flex-shrink-0">
+                  <Avatar className="h-8 w-8 mt-0.5">
+                    <AvatarImage src={author.avatar_url} />
+                    <AvatarFallback className="text-xs">
+                      {author.display_name.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                </Link>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium inline-flex items-center gap-1">
+                    <Link href={`/profile/${author.id}`} className="text-sm font-medium inline-flex items-center gap-1 hover:underline">
                       {author.display_name}
                       <AchievementBadge badge={author.featured_badge} />
-                    </span>
+                    </Link>
                     <span className="text-xs text-muted-foreground">
                       {timeAgo(comment.created_at)}
                     </span>
