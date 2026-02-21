@@ -11,6 +11,7 @@ import { createEvent } from "@/app/actions/events";
 import { CategoryPicker } from "@/components/category-picker";
 import { ActivityCategory } from "@/lib/types";
 import { STRAVA_SPORT_TYPES } from "@/lib/strava";
+import { isSportCategory } from "@/lib/category-utils";
 import { Activity } from "lucide-react";
 
 interface CreateEventFormProps {
@@ -28,6 +29,11 @@ export function CreateEventForm({ categories, hasStrava = false }: CreateEventFo
   const [stravaEnabled, setStravaEnabled] = useState(false);
   const [stravaSportType, setStravaSportType] = useState("Run");
 
+  const hasSportCategory = selectedCategoryIds.some((id) => {
+    const cat = categories.find((c) => c.id === id);
+    return cat ? isSportCategory(cat.icon) : false;
+  });
+
   const handleSubmit = async (formData: FormData) => {
     setLoading(true);
     setError(null);
@@ -44,7 +50,7 @@ export function CreateEventForm({ categories, hasStrava = false }: CreateEventFo
       reminder_hours: Number(formData.get("reminder_hours")) || 24,
       estimated_cost: estimatedCost,
       category_ids: selectedCategoryIds,
-      strava_sport_type: stravaEnabled ? stravaSportType : undefined,
+      strava_sport_type: stravaEnabled && hasSportCategory ? stravaSportType : undefined,
     });
 
     if (!result?.success && result?.error) {
@@ -162,7 +168,7 @@ export function CreateEventForm({ categories, hasStrava = false }: CreateEventFo
             />
           </div>
 
-          {hasStrava && (
+          {hasStrava && hasSportCategory && (
             <div className="rounded-lg border border-border p-3 space-y-3">
               <div className="flex items-center justify-between">
                 <Label className="flex items-center gap-2 cursor-pointer" htmlFor="strava-toggle">
