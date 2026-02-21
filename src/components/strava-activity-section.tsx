@@ -415,6 +415,7 @@ interface StravaActivitySectionProps {
   isEligible: boolean; // past event + RSVPed yes
   hasStravaToken: boolean;
   stravaAuthUrl: string;
+  hasSportCategory: boolean; // show "Log to Strava" only for sport events
 }
 
 export function StravaActivitySection({
@@ -424,6 +425,7 @@ export function StravaActivitySection({
   isEligible,
   hasStravaToken,
   stravaAuthUrl,
+  hasSportCategory,
 }: StravaActivitySectionProps) {
   const [links, setLinks] = useState(initialLinks);
   const [logDialogOpen, setLogDialogOpen] = useState(false);
@@ -458,15 +460,17 @@ export function StravaActivitySection({
 
           {isEligible && hasStravaToken && !myLink && (
             <div className="flex items-center gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-8 text-xs"
-                onClick={() => setLogDialogOpen(true)}
-              >
-                <Activity className="mr-1.5 h-3.5 w-3.5 text-orange-500" />
-                Log to Strava
-              </Button>
+              {hasSportCategory && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-xs"
+                  onClick={() => setLogDialogOpen(true)}
+                >
+                  <Activity className="mr-1.5 h-3.5 w-3.5 text-orange-500" />
+                  Log to Strava
+                </Button>
+              )}
               <Button
                 size="sm"
                 variant="outline"

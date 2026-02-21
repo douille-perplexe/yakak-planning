@@ -43,6 +43,13 @@ export function getCategoryIcon(iconName: string): LucideIcon {
   return ICON_MAP[iconName] || Tag;
 }
 
+// Icons that correspond to physical / sport activity categories
+const SPORT_ICONS = new Set(["dumbbell", "trees", "heart-pulse"]);
+
+export function isSportCategory(iconName: string): boolean {
+  return SPORT_ICONS.has(iconName);
+}
+
 export function getCategoryColorClass(color: string): string {
   return COLOR_MAP[color] || "bg-gray-100 text-gray-800 border-gray-200";
 }

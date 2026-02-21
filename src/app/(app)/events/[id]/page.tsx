@@ -25,6 +25,7 @@ import { EventRatingSection } from "@/components/event-rating";
 import {
   getCategoryIcon,
   getCategoryColorClass,
+  isSportCategory,
 } from "@/lib/category-utils";
 import { AchievementBadge } from "@/components/achievement-badge";
 import { StravaActivitySection } from "@/components/strava-activity-section";
@@ -233,6 +234,7 @@ export default async function EventDetailPage({
   const eventEndTime = new Date(event.date).getTime() + event.duration_minutes * 60000;
   const isOver = eventEndTime < Date.now();
   const canRate = isOver && userRsvp === "yes";
+  const hasSportCategory = categoryDetails.some((cat) => isSportCategory(cat.icon));
   const ratingsWithUsers = (eventRatings ?? []) as unknown as EventRatingWithUser[];
 
   // Assemble polls with their options and votes
@@ -590,6 +592,7 @@ export default async function EventDetailPage({
           isEligible={userRsvp === "yes"}
           hasStravaToken={hasStravaToken}
           stravaAuthUrl={stravaAuthUrl}
+          hasSportCategory={hasSportCategory}
         />
       )}
 
